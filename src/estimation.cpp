@@ -602,10 +602,10 @@ double mu6_sigmoid(arma::uword j,
     double theta1 = exp(btj(p));
     // double theta2 = exp(btj(p+1));
 
+    //HERE IS r(s,t) related
     arma::vec r =  1/(1+ exp(theta1*(A - Z/2)));
 
     arma::vec xbj = X.t() * bj;
-
 
     // double gj = 0;
     //
@@ -638,9 +638,6 @@ double mu6_sigmoid(arma::uword j,
             num = num + w * Y(i);
         }
     }
-
-
-
 
     return num/den/(1 + exp( theta1*(a-t/2) ));
 }
