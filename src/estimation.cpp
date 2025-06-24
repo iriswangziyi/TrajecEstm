@@ -80,6 +80,9 @@ arma::vec gradi(arma::vec btj,
     arma::vec xbj = X.t() * beta;       // Xβ
     arma::vec exp_xbj = arma::exp(xbj);
     arma::vec r = 1 / (1 + arma::exp(theta * (A - Z / 2)));
+    //TODO
+    // We used arma::vec before and worked, need to check on this some time
+    //actually should be arma::mat in general cases
     arma::vec dr = -r % (1 - r) % (A - Z / 2); // d r / d theta
 
     for (int i = 0; i < n; ++i) {
@@ -101,6 +104,9 @@ arma::vec gradi(arma::vec btj,
             // Gradient for theta
             double dlogr_i = dr(i) / r(i);
             //double weighted_dlogr = arma::sum(ki.t() % exp_xbj % dr) / denom;
+
+            //TODO
+            //Might have a problem for general dr,
             double weighted_dlogr = arma::sum(ki % exp_xbj % dr) / denom;
             double grad_i_theta = dlogr_i - weighted_dlogr;
 
@@ -582,6 +588,9 @@ double mu6_exp(arma::uword j,
     return mu6[0];
 }
 
+//write a more generic mu
+
+
 // [[Rcpp::export]]
 double mu6_sigmoid(arma::uword j,
                    double t,
@@ -603,6 +612,8 @@ double mu6_sigmoid(arma::uword j,
     // double theta2 = exp(btj(p+1));
 
     //HERE IS r(s,t) related
+    //TODO change to computer_r()
+    //lucky no need to compute dr.
     arma::vec r =  1/(1+ exp(theta1*(A - Z/2)));
 
     arma::vec xbj = X.t() * bj;
