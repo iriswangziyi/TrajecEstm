@@ -1,6 +1,7 @@
 // [[Rcpp::depends(RcppEnsmallen)]]
 // [[Rcpp::plugins(cpp14)]]
 
+#include <RcppArmadillo.h>
 #include <RcppEnsmallen.h>
 #include "utils.h"
 
@@ -54,6 +55,97 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
         return matK(Z, h1);
     }
 }
+
+//NEED return double's r
+// [[Rcpp::export]]
+double compute_r_scalar(double a,
+                        double z,
+                        arma::vec theta,
+                        double sce)
+{
+    double r;
+
+    if(sce == 2) {
+        r = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+    } else {
+        // placeholder: reuse sigmoid
+        r = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+    }
+
+    return r;
+}
+
+
+// [[Rcpp::export]]
+// might not need, then take out...
+Rcpp::List compute_r_dr_scalar(double a,
+                               double z,
+                               arma::vec theta,
+                               double sce)
+{
+    double r, dr;
+
+    if(sce == 2) {
+        r  = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+        dr = -r * (1.0 - r) * (a - 0.5 * z);
+    } else {
+        // placeholder: reuse sigmoid
+        r  = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+        dr = -r * (1.0 - r) * (a - 0.5 * z);
+    }
+
+    return Rcpp::List::create(
+        Rcpp::Named("r")  = r,
+        Rcpp::Named("dr") = dr);
+}
+
+
+//compute_r + compute_dr
+// [[Rcpp::export]]
+arma::vec compute_r_vec(arma::vec a,
+                        arma::vec z,
+                        arma::vec theta,
+                        double sce)
+{
+    arma::vec r;
+
+    if(sce == 2) {
+        r = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+    } else {
+        // placeholder: reuse sigmoid
+        r = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+    }
+
+    return r;
+}
+
+
+
+// [[Rcpp::export]]
+Rcpp::List compute_r_dr(arma::vec a,
+                        arma::vec z,
+                        arma::vec theta,
+                        double sce)
+{
+    arma::vec r;
+    arma::vec dr;
+
+    //only have sigmoiod case, sce=2, for now
+    if(sce == 2) {
+        r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+        dr = -r % (1 - r) % (a - 0.5 * z); // d r / d theta
+    } else {
+        // placeholder: reuse sigmoid
+        //TODO: gamma's r and dr
+        r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+        dr = -r % (1 - r) % (a - 0.5 * z);
+    }
+
+    return Rcpp::List::create(
+        Rcpp::Named("r")  = r,
+        Rcpp::Named("dr") = dr);
+}
+
 
 // --------------------
 // Gradient function
@@ -137,6 +229,7 @@ arma::vec rfun(arma::vec a,
 
     //return 1/(1+ exp(  (theta(0)*t+theta(1)) % (a - (theta(2)*t+theta(3)) )));
 }
+
 // [[Rcpp::export]]
 double rfun2(double a,
              double t,

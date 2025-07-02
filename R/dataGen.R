@@ -164,6 +164,9 @@ simData2 <- function(T0param = c(lambda = 0.1,
     # Compute marker trajectory μ_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
 
+        ## will need to use computer r from utils.cpp
+        ##TODO: how to call cpp fun in R
+
         ## Scenario A: Gamma-based function
         # Cause 1
         rs1 <- dgamma(S, shape = 2, scale = 1)  # f(s;θ) where θ=2
