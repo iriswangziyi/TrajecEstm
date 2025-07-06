@@ -109,7 +109,7 @@ struct PPLObjective_V1 {
         //arma::mat dr = compute_dr(A, Z, theta);            // externally computed
         arma::vec r = r_dr["r"];
         arma::mat dr = r_dr["dr"]; //nxq
-        arma::mat  dr_t = dr.t(); //qxn
+        arma::mat dr_t = dr.t(); //qxn
         arma::vec eXr = exp_xbj % r;  // exp(η) · r
 
         // Accumulators

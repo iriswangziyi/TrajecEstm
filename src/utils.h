@@ -21,12 +21,6 @@ arma::vec compute_r_vec(arma::vec a,
                         arma::vec theta,
                         double sce);
 
-// Compute r and dr for a single (a, z) pair
-Rcpp::List compute_r_dr_scalar(double a,
-                               double z,
-                               arma::vec theta,
-                               double sce);
-
 // Compute only r for a single (a, z) pair
 double compute_r_scalar(double a,
                         double z,

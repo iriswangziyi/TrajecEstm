@@ -76,30 +76,6 @@ double compute_r_scalar(double a,
 }
 
 
-// [[Rcpp::export]]
-// might not need, then take out...
-Rcpp::List compute_r_dr_scalar(double a,
-                               double z,
-                               arma::vec theta,
-                               double sce)
-{
-    double r, dr;
-
-    if(sce == 2) {
-        r  = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
-        dr = -r * (1.0 - r) * (a - 0.5 * z);
-    } else {
-        // placeholder: reuse sigmoid
-        r  = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
-        dr = -r * (1.0 - r) * (a - 0.5 * z);
-    }
-
-    return Rcpp::List::create(
-        Rcpp::Named("r")  = r,
-        Rcpp::Named("dr") = dr);
-}
-
-
 //compute_r + compute_dr
 // [[Rcpp::export]]
 arma::vec compute_r_vec(arma::vec a,
@@ -128,17 +104,18 @@ Rcpp::List compute_r_dr(arma::vec a,
                         double sce)
 {
     arma::vec r;
-    arma::vec dr;
+    arma::mat dr; //we should fix dim=(n by theta)
 
     //only have sigmoiod case, sce=2, for now
     if(sce == 2) {
         r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-        dr = -r % (1 - r) % (a - 0.5 * z); // d r / d theta
+        dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
+
     } else {
         // placeholder: reuse sigmoid
         //TODO: gamma's r and dr
         r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-        dr = -r % (1 - r) % (a - 0.5 * z);
+        dr = r % (1 - r) % (a - 0.5 * z);
     }
 
     return Rcpp::List::create(
@@ -176,7 +153,7 @@ arma::vec gradi(arma::vec btj,
     //TODO
     // We used arma::vec before and worked, need to check on this some time
     //actually should be arma::mat in general cases
-    arma::vec dr = -r % (1 - r) % (A - Z / 2); // d r / d theta
+    arma::vec dr = r % (1 - r) % (A - Z / 2); // d r / d theta
 
     for (int i = 0; i < n; ++i) {
         if (Z(i) >= tau0 && Z(i) <= tau1) {
