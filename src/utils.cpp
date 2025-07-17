@@ -58,71 +58,144 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
 
 //NEED return double's r
 // [[Rcpp::export]]
-double compute_r_scalar(double a,
-                        double z,
+double compute_r_scalar(double s,
+                        double t,
                         arma::vec theta,
                         double sce)
 {
     double r;
 
-    if(sce == 2) {
-        r = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+    if (sce == 2.1) {
+        // Sigmoid
+        r = 1.0 / (1.0 + std::exp(-theta(0) * (s - 0.5 * t)));
+
+    } else if (sce == 2.2) {
+        // Weibull CDF
+        double base = s / (exp(theta(0)) * t);
+        r = 1.0 - std::exp(-std::pow(base, exp(theta(1))));
+
+    } else if (sce == 1.1) {
+        // Gamma PDF: shape=3, scale=θ·t
+        // theta need to be pos
+        double shape = 3.0;
+        double scale = exp(theta(0)) * t;
+        r = std::pow(s, shape - 1.0) * std::exp(-s / scale) /
+            (std::tgamma(shape) * std::pow(scale, shape));
+
+    } else if (sce == 1.2) {
+        // Polynomial
+        double diff = s - 0.5 * t;
+        r = theta(0) * diff * diff + theta(1);
+
     } else {
-        // placeholder: reuse sigmoid
-        r = 1.0 / (1.0 + std::exp(theta(0) * (a - 0.5 * z)));
+        Rcpp::stop("Unsupported sce value in compute_r_scalar()");
     }
 
     return r;
 }
+
 
 
 //compute_r + compute_dr
 // [[Rcpp::export]]
-arma::vec compute_r_vec(arma::vec a,
-                        arma::vec z,
+arma::vec compute_r_vec(arma::vec s,
+                        arma::vec t,
                         arma::vec theta,
                         double sce)
 {
-    arma::vec r;
+    arma::vec r(s.n_elem);
 
-    if(sce == 2) {
-        r = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+    if (sce == 2.1) {
+        // === Sigmoid: r(s, t) = 1 / (1 + exp(-θ(s - 0.5t))) ===
+        r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
+
+    } else if (sce == 2.2) {
+        // === Weibull CDF: r(s,t) = 1 - exp( - (s / (θ₁·t))^θ₂ ) ===
+        // shape and scale need to be pos
+        arma::vec base = s / (exp(theta(0)) * t);
+        r = 1 - exp(-pow(base, exp(theta(1))));
+
+    } else if (sce == 1.1) {
+        // === Gamma PDF: r(s,t) = dgamma(s; shape=3, scale=θ·t) ===
+        // theta need to be pos
+        double shape = 3.0;
+        arma::vec scale = exp(theta(0)) * t;
+        r = pow(s, shape - 1.0) % exp(-s / scale) / (tgamma(shape) * pow(scale, shape));
+
+    } else if (sce == 1.2) {
+        // === Polynomial: r(s,t) = θ1 * (s - 0.5t)^2 + θ2 ===
+        arma::vec diff = s - 0.5 * t;
+        r = theta(0) * diff % diff+ theta(1);
+
     } else {
-        // placeholder: reuse sigmoid
-        r = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+        Rcpp::stop("Unsupported sce value in compute_r_vec()");
     }
 
     return r;
 }
 
+//only have sigmoiod case, sce=2, for now
+//r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+//dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
 
 
 // [[Rcpp::export]]
-Rcpp::List compute_r_dr(arma::vec a,
-                        arma::vec z,
+Rcpp::List compute_r_dr(arma::vec s,
+                        arma::vec t,
                         arma::vec theta,
                         double sce)
 {
-    arma::vec r;
-    arma::mat dr; //we should fix dim=(n by theta)
+    int n = s.n_elem;
+    arma::vec r(n);
+    arma::mat dr(n, theta.n_elem, arma::fill::zeros); // n x #theta
 
-    //only have sigmoiod case, sce=2, for now
-    if(sce == 2) {
-        r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-        dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
+    if (sce == 2.1) {
+        // === Sigmoid: r(s, t; theta) = 1 / (1 + exp(-theta (s - 0.5t))) ===
+        r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
+        dr.col(0) = r % (1 - r) % (s - 0.5 * t);
+
+    } else if (sce == 2.2) {
+        // === Weibull CDF: r(s,t) = 1 - exp( - (s / (theta1·t))^theta2 ) ===
+        // thetas need to be pos
+        arma::vec base = s / (exp(theta(0)) * t);
+        arma::vec power = pow(base, exp(theta(1)));
+        arma::vec exp_term = exp(-power);
+        r = 1 - exp_term;
+
+        // dr/dtheta1 = exp_term * theta2 * (s/(theta1·t))^theta2 / theta1
+        dr.col(0) = exp_term % power * exp(theta(1)) / exp(theta(0)) * exp(theta(0));
+
+        // dr/dtheta2 = -log(s/(theta1·t)) * (s/(theta1·t))^theta2 * exp_term
+        dr.col(1) = -log(base) % power % exp_term * exp(theta(1));
+
+    } else if (sce == 1.1) {
+        // === Gamma PDF: r(s,t) = dgamma(s; shape=3, scale=theta·t) ===
+        // theta need to be pos
+        double shape = 3.0;
+        arma::vec scale = exp(theta(0)) * t;
+        arma::vec coef = pow(s, shape - 1) % exp(-s / scale) / (tgamma(shape) * pow(scale, shape));
+        r = coef;
+
+        // dr/dtheta = d/dtheta [dgamma(s, shape=3, scale=theta·t)]
+        // dr = r * [s / (scale^2) - shape / scale] * dscale/dtheta = r * (s - 3·scale) / (scale^2) * t
+        dr.col(0) = r % (s - shape * scale) / (scale % scale) % t * exp(theta(0));
+
+    } else if (sce == 1.2) {
+        // === Poly: r(s,t) = theta1 * (s - 0.5t)^2 + theta2 ===
+        arma::vec quad = (s - 0.5 * t)%(s - 0.5 * t);
+        r = theta(0) * quad + theta(1);
+        dr.col(0) = quad;
+        dr.col(1) = arma::ones<arma::vec>(n);
 
     } else {
-        // placeholder: reuse sigmoid
-        //TODO: gamma's r and dr
-        r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-        dr = r % (1 - r) % (a - 0.5 * z);
+        Rcpp::stop("Unsupported sce value in compute_r_dr()");
     }
 
     return Rcpp::List::create(
         Rcpp::Named("r")  = r,
-        Rcpp::Named("dr") = dr);
+        Rcpp::Named("dr") = dr
+    );
 }
-
 
 // --------------------
 // Gradient function
@@ -147,13 +220,13 @@ arma::vec gradi(arma::vec btj,
     arma::vec beta = btj.subvec(0, p - 1);
     double theta = std::exp(btj(p));  // note: we optimize log(theta)
 
-    arma::vec xbj = X.t() * beta;       // Xβ
+    arma::vec xbj = X.t() * beta;       // Xbeta
     arma::vec exp_xbj = arma::exp(xbj);
     arma::vec r = 1 / (1 + arma::exp(theta * (A - Z / 2)));
     //TODO
     // We used arma::vec before and worked, need to check on this some time
     //actually should be arma::mat in general cases
-    arma::vec dr = r % (1 - r) % (A - Z / 2); // d r / d theta
+    arma::vec dr = - r % (1 - r) % (A - Z / 2); // d r / d theta
 
     for (int i = 0; i < n; ++i) {
         if (Z(i) >= tau0 && Z(i) <= tau1) {

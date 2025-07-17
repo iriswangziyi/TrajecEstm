@@ -4,7 +4,7 @@
 \alias{mu_sigmoid}
 \title{\code{mu6_sigmoid}: baseline mean estimator (sigmoid model)}
 \usage{
-mu_sigmoid(j, t, a, h, btj, X, Y, delPi, A, Z)
+mu_sigmoid(j, t, a, h, btj, X, Y, delPi, A, Z, sce)
 }
 \description{
 Direct wrapper around the C++ implementation. Most users will call

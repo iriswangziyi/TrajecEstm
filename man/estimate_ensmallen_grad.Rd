@@ -12,8 +12,10 @@ estimate_ensmallen_grad(
   use_sparse = FALSE,
   tau0 = 0,
   tau1 = Inf,
+  sce = 2.1,
   tol = 1e-08,
-  max_iter = 1000
+  max_iter = 1000,
+  init
 )
 }
 \value{

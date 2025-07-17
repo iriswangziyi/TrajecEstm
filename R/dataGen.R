@@ -1,3 +1,7 @@
+
+# g()
+
+
 #' Generate Simulated Data With Time-Dependent X
 #'
 #' Creates a synthetic data set suitable for testing the trajectory
@@ -163,33 +167,25 @@ simData2 <- function(T0param = c(lambda = 0.1,
 
     # Compute marker trajectory μ_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
-
-        ## will need to use computer r from utils.cpp
-        ##TODO: how to call cpp fun in R
-
-        ## Scenario A: Gamma-based function
-        # Cause 1
-        rs1 <- dgamma(S, shape = 2, scale = 1)  # f(s;θ) where θ=2
-        gs1 <- 1 / log(T_l + 1)  # g1(t) = 1 / log(t+1) #3/14 change to 1 TODO
+        # Scenario 1.1: Gamma PDF
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = log(0.5), sce = 1.1)
+        gs1 <- 1
         mus1 <- rs1 * gs1
 
-        # Cause 2
-        rs2 <- dgamma(S, shape = 2, scale = 1)  # f(s;θ) where θ=2
-        gs2 <- 2  # g2(t) = 2
+        # Scenario 1.2: Poly
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.2, 0.1), sce = 1.2)
+        gs2 <- 1 + 0.1 * T_l
         mus2 <- rs2 * gs2
 
     }else{
-        ## Scenario B: Sigmoid-based function
-        # Cause 1
-        theta1 <- 1  # Given θ_10 = 1
-        rs1 <- 1 / (1 + exp(theta1 * (S - T_l / 2)))  # Sigmoid function
-        gs1 <- 1  # g1(t) = 1
+        ## Scenario 2.1:Sigmoid
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = 1.2, sce = 2.1)
+        gs1 <- log(T_l + 2)
         mus1 <- rs1 * gs1
 
-        # Cause 2
-        theta2 <- 2  # Given θ_20 = 2
-        rs2 <- 1 / (1 + exp(theta2 * (S - T_l / 2)))  # Sigmoid function
-        gs2 <- log(1 + T_l)  # g2(t) = log(1 + t)
+        # Scenario 2.2: Weibull
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = log(c(0.8, 2)), sce = 2.2)
+        gs2 <- sqrt(T_l + 1)
         mus2 <- rs2 * gs2
     }
 

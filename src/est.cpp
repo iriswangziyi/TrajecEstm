@@ -71,12 +71,13 @@ struct PPLObjective_V1 {
     const arma::mat&   Kmat;       // symmetric kernel weight matrix
     const double       tau0;       // lower boundary for t
     const double       tau1;       // upper boundary for t
+    const double       sce;         // Scenario
 
     PPLObjective_V1(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_A_,
                     const arma::vec& A_,  const arma::vec& Z_,  const arma::mat& Kmat_,
-                    double tau0_,  double tau1_)
+                    double tau0_,  double tau1_, double sce_)
         : j(j_), X(X_), Y_A(Y_A_), A(A_), Z(Z_), Kmat(Kmat_),
-          tau0(tau0_), tau1(tau1_) {}
+          tau0(tau0_), tau1(tau1_), sce(sce_) {}
 
     // --------------------------------------------------
     // Evaluate −logPPL and its gradient in one pass
@@ -105,7 +106,7 @@ struct PPLObjective_V1 {
         //arma::vec dr      = -r % (1.0 - r) % (A - Z * 0.5);      // dr/dtheta
 
         //change to this
-        Rcpp::List r_dr = compute_r_dr(A, Z, theta);          // externally computed
+        Rcpp::List r_dr = compute_r_dr(A, Z, theta, sce);          // externally computed
         //arma::mat dr = compute_dr(A, Z, theta);            // externally computed
         arma::vec r = r_dr["r"];
         arma::mat dr = r_dr["dr"]; //nxq
@@ -165,11 +166,12 @@ arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
                                        const arma::mat&    Kmat,
                                        double              tau0,
                                        double              tau1,
+                                       double              sce,
                                        arma::vec           init,
                                        double              tol       = 1e-8,
                                        std::size_t         max_iter  = 1000) {
 
-    PPLObjective_V1 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1);
+    PPLObjective_V1 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;
@@ -194,20 +196,22 @@ struct PPLObjective_V2 {
     const arma::mat&   Kmat;       // symmetric kernel weight matrix
     const double       tau0;       // lower boundary for t
     const double       tau1;       // upper boundary for t
+    const double       sce;         // Scenario
 
     PPLObjective_V2(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_A_,
                     const arma::vec& A_,  const arma::vec& Z_,  const arma::mat& Kmat_,
-                    double tau0_,  double tau1_)
+                    double tau0_,  double tau1_, double sce_)
         : j(j_), X(X_), Y_A(Y_A_), A(A_), Z(Z_), Kmat(Kmat_),
-          tau0(tau0_), tau1(tau1_) {}
+          tau0(tau0_), tau1(tau1_), sce(sce_) {}
 
     // --------------------------------------------------
     // Evaluate −logPPL and its gradient in one pass
     // --------------------------------------------------
 
     //NEW USE THIS written by Fei
-    double EvaluateWithGradient(const arma::mat& btj, arma::mat& grad) {
-        const arma::uword n = A.n_elem;
+    double EvaluateWithGradient(const arma::mat& btj,
+                                arma::mat& grad) {
+        //const arma::uword n = A.n_elem;
         const arma::uword p = X.n_rows;
         const arma::uword q = btj.n_rows - p;  // number of theta parameters
 
@@ -219,7 +223,7 @@ struct PPLObjective_V2 {
         arma::vec xbj = X.t() * beta;                      // linear predictor
         arma::vec exp_xbj = arma::exp(xbj);                // exp(eta)
 
-        Rcpp::List r_dr = compute_r_dr(A, Z, theta);              // externally computed
+        Rcpp::List r_dr = compute_r_dr(A, Z, theta, sce);              // externally computed
         //arma::mat dr = compute_dr(A, Z, theta);            // externally computed
         arma::vec r = r_dr["r"];
         arma::mat dr = r_dr["dr"];
@@ -264,11 +268,12 @@ arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
                                        const arma::mat&    Kmat,
                                        double              tau0,
                                        double              tau1,
+                                       double              sce,
                                        arma::vec           init,
                                        double              tol       = 1e-8,
                                        std::size_t         max_iter  = 1000) {
 
-    PPLObjective_V2 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1);
+    PPLObjective_V2 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;
