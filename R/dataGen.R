@@ -96,10 +96,12 @@ simData2 <- function(T0param = c(lambda = 0.1,
     # Pi0 <- rbinom(N0, size = 1, prob = p_cause1) + 1
 
     ## Generate truncation time: A0
-    A0 <- runif(N0, 0, 3.3)
+    # 7.18 used to be 3.3, truncation_prob = 0.2
+    # now changed to 10, truncation_prob = 0.486
+    A0 <- runif(N0, 0, 10)
 
     # WANT: truncation_prob = P(T0<A0) ~0.25, sum(T0<=A0)/N0~0.25
-    truncation_prob = sum(T0 <= A0) / N0 # 0.2
+    #truncation_prob = sum(T0 <= A0) / N0 # 0.2
     #truncation_prob
 
     pop <- data.frame(A0 = A0, T0 = T0, Pi0 = Pi0, X1 = 0, X2 = X2_0)
@@ -115,12 +117,13 @@ simData2 <- function(T0param = c(lambda = 0.1,
     Pi <- sam.data$Pi0
     X1 <- sam.data$X1
     X2 <- sam.data$X2
+    threshold <- threshold0[ind == TRUE][1:N]
 
     ## residual censoring time after enrollment: C
-    C <- rexp(N, rate = 0.04)
+    C <- rexp(N, rate = 0.05)
 
     # WANT: censoring_rate = P(A+C<T) ~0.25
-    censoring_rate <- sum(A + C < T) / N #0.22
+    #censoring_rate <- sum(A + C < T) / N #0.22
     #censoring_rate
 
     ## Generating Z: observed censored event time
@@ -134,14 +137,14 @@ simData2 <- function(T0param = c(lambda = 0.1,
     ## Generating V: follow-up visits
     # V0 = 0, V1 = 1, V2 = 2, ...,V5 = 5
     # keep V <= Z-A
-    V <- rep(seq(0, 5, 1), N)
+    V <- rep(seq(0, 20, 2), N)
     nv <- 6
     id <- rep(seq(1:N), each = nv)
 
     A_l <- rep(A, each = nv)
     Z_l <- rep(Z, each = nv)
     ## X1
-    X1_l <- ifelse(V < threshold0, 0, 1)
+    X1_l <- ifelse(V < rep(threshold, each = nv), 0, 1)
     X2_l <- rep(X2, each = nv)
     T_l <- rep(T, each = nv)
     Pi_l <- rep(Pi, each = nv)

@@ -56,7 +56,12 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
     }
 }
 
-//NEED return double's r
+//only have sigmoiod case, sce=2, for now
+//r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
+//dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
+
+
+// Updated: compute_r_scalar for new exp(poly) scenarios
 // [[Rcpp::export]]
 double compute_r_scalar(double s,
                         double t,
@@ -69,23 +74,19 @@ double compute_r_scalar(double s,
         // Sigmoid
         r = 1.0 / (1.0 + std::exp(-theta(0) * (s - 0.5 * t)));
 
-    } else if (sce == 2.2) {
-        // Weibull CDF
-        double base = s / (exp(theta(0)) * t);
-        r = 1.0 - std::exp(-std::pow(base, exp(theta(1))));
-
-    } else if (sce == 1.1) {
-        // Gamma PDF: shape=3, scale=θ·t
-        // theta need to be pos
-        double shape = 3.0;
-        double scale = exp(theta(0)) * t;
-        r = std::pow(s, shape - 1.0) * std::exp(-s / scale) /
-            (std::tgamma(shape) * std::pow(scale, shape));
-
     } else if (sce == 1.2) {
-        // Polynomial
+        // Poly2: log(r) = θ1·(s - 0.5t)^2 + θ2
         double diff = s - 0.5 * t;
-        r = theta(0) * diff * diff + theta(1);
+        r = std::exp(theta(0) * diff * diff + theta(1));
+
+    } else if (sce == 1.3) {
+        // Poly3: log(r) = -θ1·(s - 0.5t)^2 + θ2
+        double diff = s - 0.5 * t;
+        r = std::exp(-theta(0) * diff * diff + theta(1));
+
+    } else if (sce == 1.4) {
+        // Poly4: log(r) = θ1·s^2 + θ2·s + θ3
+        r = std::exp(theta(0) * s * s + theta(1) * s + theta(2));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_scalar()");
@@ -94,9 +95,7 @@ double compute_r_scalar(double s,
     return r;
 }
 
-
-
-//compute_r + compute_dr
+// Updated: compute_r_vec
 // [[Rcpp::export]]
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
@@ -106,26 +105,18 @@ arma::vec compute_r_vec(arma::vec s,
     arma::vec r(s.n_elem);
 
     if (sce == 2.1) {
-        // === Sigmoid: r(s, t) = 1 / (1 + exp(-θ(s - 0.5t))) ===
         r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
 
-    } else if (sce == 2.2) {
-        // === Weibull CDF: r(s,t) = 1 - exp( - (s / (θ₁·t))^θ₂ ) ===
-        // shape and scale need to be pos
-        arma::vec base = s / (exp(theta(0)) * t);
-        r = 1 - exp(-pow(base, exp(theta(1))));
-
-    } else if (sce == 1.1) {
-        // === Gamma PDF: r(s,t) = dgamma(s; shape=3, scale=θ·t) ===
-        // theta need to be pos
-        double shape = 3.0;
-        arma::vec scale = exp(theta(0)) * t;
-        r = pow(s, shape - 1.0) % exp(-s / scale) / (tgamma(shape) * pow(scale, shape));
-
     } else if (sce == 1.2) {
-        // === Polynomial: r(s,t) = θ1 * (s - 0.5t)^2 + θ2 ===
         arma::vec diff = s - 0.5 * t;
-        r = theta(0) * diff % diff+ theta(1);
+        r = exp(theta(0) * diff % diff + theta(1));
+
+    } else if (sce == 1.3) {
+        arma::vec diff = s - 0.5 * t;
+        r = exp(-theta(0) * diff % diff + theta(1));
+
+    } else if (sce == 1.4) {
+        r = exp(theta(0) * s % s + theta(1) * s + theta(2));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_vec()");
@@ -134,11 +125,7 @@ arma::vec compute_r_vec(arma::vec s,
     return r;
 }
 
-//only have sigmoiod case, sce=2, for now
-//r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-//dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
-
-
+// Updated: compute_r_dr
 // [[Rcpp::export]]
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
@@ -147,52 +134,39 @@ Rcpp::List compute_r_dr(arma::vec s,
 {
     int n = s.n_elem;
     arma::vec r(n);
-    arma::mat dr(n, theta.n_elem, arma::fill::zeros); // n x #theta
+    arma::mat dr(n, theta.n_elem, arma::fill::zeros);
 
     if (sce == 2.1) {
-        // === Sigmoid: r(s, t; theta) = 1 / (1 + exp(-theta (s - 0.5t))) ===
         r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
         dr.col(0) = r % (1 - r) % (s - 0.5 * t);
 
-    } else if (sce == 2.2) {
-        // === Weibull CDF: r(s,t) = 1 - exp( - (s / (theta1·t))^theta2 ) ===
-        // thetas need to be pos
-        arma::vec base = s / (exp(theta(0)) * t);
-        arma::vec power = pow(base, exp(theta(1)));
-        arma::vec exp_term = exp(-power);
-        r = 1 - exp_term;
-
-        // dr/dtheta1 = exp_term * theta2 * (s/(theta1·t))^theta2 / theta1
-        dr.col(0) = exp_term % power * exp(theta(1)) / exp(theta(0)) * exp(theta(0));
-
-        // dr/dtheta2 = -log(s/(theta1·t)) * (s/(theta1·t))^theta2 * exp_term
-        dr.col(1) = -log(base) % power % exp_term * exp(theta(1));
-
-    } else if (sce == 1.1) {
-        // === Gamma PDF: r(s,t) = dgamma(s; shape=3, scale=theta·t) ===
-        // theta need to be pos
-        double shape = 3.0;
-        arma::vec scale = exp(theta(0)) * t;
-        arma::vec coef = pow(s, shape - 1) % exp(-s / scale) / (tgamma(shape) * pow(scale, shape));
-        r = coef;
-
-        // dr/dtheta = d/dtheta [dgamma(s, shape=3, scale=theta·t)]
-        // dr = r * [s / (scale^2) - shape / scale] * dscale/dtheta = r * (s - 3·scale) / (scale^2) * t
-        dr.col(0) = r % (s - shape * scale) / (scale % scale) % t * exp(theta(0));
-
     } else if (sce == 1.2) {
-        // === Poly: r(s,t) = theta1 * (s - 0.5t)^2 + theta2 ===
-        arma::vec quad = (s - 0.5 * t)%(s - 0.5 * t);
-        r = theta(0) * quad + theta(1);
-        dr.col(0) = quad;
-        dr.col(1) = arma::ones<arma::vec>(n);
+        arma::vec diff = s - 0.5 * t;
+        arma::vec quad = diff % diff;
+        r = exp(theta(0) * quad + theta(1));
+        dr.col(0) = r % quad;
+        dr.col(1) = r;
+
+    } else if (sce == 1.3) {
+        arma::vec diff = s - 0.5 * t;
+        arma::vec quad = diff % diff;
+        r = exp(-theta(0) * quad + theta(1));
+        dr.col(0) = -r % quad;
+        dr.col(1) = r;
+
+    } else if (sce == 1.4) {
+        arma::vec s2 = s % s;
+        r = exp(theta(0) * s2 + theta(1) * s + theta(2));
+        dr.col(0) = r % s2;
+        dr.col(1) = r % s;
+        dr.col(2) = r;
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_dr()");
     }
 
     return Rcpp::List::create(
-        Rcpp::Named("r")  = r,
+        Rcpp::Named("r") = r,
         Rcpp::Named("dr") = dr
     );
 }
