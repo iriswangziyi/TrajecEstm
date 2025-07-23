@@ -69,24 +69,25 @@ double compute_r_scalar(double s,
                         double sce)
 {
     double r;
+    double tau = 20.0;
 
     if (sce == 2.1) {
         // Sigmoid
-        r = 1.0 / (1.0 + std::exp(-theta(0) * (s - 0.5 * t)));
+        r = 1.0 / (1.0 + std::exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
+
+    } else if (sce == 2.2) {
+        // Poly2: log(r) = θ1·s + θ2 s^2
+        r = std::exp(theta(0) * (s/tau) + theta(1) * (s/tau) *(s/tau));
+
+    } else if (sce == 1.1) {
+        // Poly3: log(r) = -θ1·(s - 0.5t)^2 + θ2
+        double diff = (s/tau) - 0.5 * (t/tau);
+        r = std::exp(-theta(0) * diff * diff + theta(1) * (s/tau));
 
     } else if (sce == 1.2) {
-        // Poly2: log(r) = θ1·(s - 0.5t)^2 + θ2
-        double diff = s - 0.5 * t;
-        r = std::exp(theta(0) * diff * diff + theta(1));
-
-    } else if (sce == 1.3) {
-        // Poly3: log(r) = -θ1·(s - 0.5t)^2 + θ2
-        double diff = s - 0.5 * t;
-        r = std::exp(-theta(0) * diff * diff + theta(1));
-
-    } else if (sce == 1.4) {
         // Poly4: log(r) = θ1·s^2 + θ2·s + θ3
-        r = std::exp(theta(0) * s * s + theta(1) * s + theta(2));
+        r = std::exp(theta(0) * (s/tau) * (s/tau) + theta(1) * (s/tau)
+                         + theta(2) * (s/tau) * (t/tau));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_scalar()");
@@ -103,20 +104,21 @@ arma::vec compute_r_vec(arma::vec s,
                         double sce)
 {
     arma::vec r(s.n_elem);
+    double tau = 20.0;
 
     if (sce == 2.1) {
-        r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
+        r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
+
+    } else if (sce == 2.2) {
+        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
+
+    } else if (sce == 1.1) {
+        arma::vec diff =(s/tau) - 0.5 * (t/tau);
+        r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
 
     } else if (sce == 1.2) {
-        arma::vec diff = s - 0.5 * t;
-        r = exp(theta(0) * diff % diff + theta(1));
-
-    } else if (sce == 1.3) {
-        arma::vec diff = s - 0.5 * t;
-        r = exp(-theta(0) * diff % diff + theta(1));
-
-    } else if (sce == 1.4) {
-        r = exp(theta(0) * s % s + theta(1) * s + theta(2));
+        r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
+                         + theta(2) * (s/tau) % (t/tau));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_vec()");
@@ -132,34 +134,31 @@ Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec theta,
                         double sce)
 {
-    int n = s.n_elem;
-    arma::vec r(n);
-    arma::mat dr(n, theta.n_elem, arma::fill::zeros);
+    double tau = 20.0;
+    arma::vec r(s.n_elem);
+    arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
 
     if (sce == 2.1) {
-        r = 1 / (1 + exp(-theta(0) * (s - 0.5 * t)));
-        dr.col(0) = r % (1 - r) % (s - 0.5 * t);
+        r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
+        dr.col(0) = r % (1 - r) % ((s/tau) - 0.5 * (t/tau));
+
+    } else if (sce == 2.2) {
+        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
+        dr.col(0) = r % (s/tau);
+        dr.col(1) = r % (s/tau) % (s/tau);
+
+    } else if (sce == 1.1) {
+        arma::vec diff =(s/tau) - 0.5 * (t/tau);
+        r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
+        dr.col(0) = -r % diff % diff;
+        dr.col(1) = r % (s/tau);
 
     } else if (sce == 1.2) {
-        arma::vec diff = s - 0.5 * t;
-        arma::vec quad = diff % diff;
-        r = exp(theta(0) * quad + theta(1));
-        dr.col(0) = r % quad;
-        dr.col(1) = r;
-
-    } else if (sce == 1.3) {
-        arma::vec diff = s - 0.5 * t;
-        arma::vec quad = diff % diff;
-        r = exp(-theta(0) * quad + theta(1));
-        dr.col(0) = -r % quad;
-        dr.col(1) = r;
-
-    } else if (sce == 1.4) {
-        arma::vec s2 = s % s;
-        r = exp(theta(0) * s2 + theta(1) * s + theta(2));
-        dr.col(0) = r % s2;
-        dr.col(1) = r % s;
-        dr.col(2) = r;
+        r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
+                    + theta(2) * (s/tau) % (t/tau));
+        dr.col(0) = r % (s/tau) % (s/tau);
+        dr.col(1) = r % (s/tau);
+        dr.col(2) = r % (s/tau) % (t/tau);
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_dr()");

@@ -7,7 +7,7 @@
 simData2(
   T0param = c(lambda = 0.1, beta_X1 = 0.5, beta_X2 = 0.3),
   beta0 = c(beta11 = 0.5, beta12 = -0.5, beta21 = 0.5, beta22 = -0.5),
-  N = 100,
+  N = 500,
   scenario = 2
 )
 }

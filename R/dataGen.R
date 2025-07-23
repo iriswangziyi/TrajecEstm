@@ -44,7 +44,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
                                beta12 = -0.5,
                                beta21 = .5,
                                beta22 = -0.5),
-                     N = 100,
+                     N = 500,
                      scenario = 2)
 {
 
@@ -138,7 +138,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
     # V0 = 0, V1 = 1, V2 = 2, ...,V5 = 5
     # keep V <= Z-A
     V <- rep(seq(0, 20, 2), N)
-    nv <- 6
+    nv <- length(V)/N
     id <- rep(seq(1:N), each = nv)
 
     A_l <- rep(A, each = nv)
@@ -170,25 +170,25 @@ simData2 <- function(T0param = c(lambda = 0.1,
 
     # Compute marker trajectory μ_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
-        # Scenario 1.1: Gamma PDF
-        rs1 <- compute_r_vec(s = S, t = T_l, theta = log(0.5), sce = 1.1)
-        gs1 <- 1
+        # Scenario 1.1: bell poly
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2,1), sce = 1.1)
+        gs1 <- log(T_l + 2)
         mus1 <- rs1 * gs1
 
-        # Scenario 1.2: Poly
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.2, 0.1), sce = 1.2)
-        gs2 <- 1 + 0.1 * T_l
+        # Scenario 1.2: general Poly
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, 2, -1.5), sce = 1.2)
+        gs2 <- sqrt(T_l + 1)
         mus2 <- rs2 * gs2
 
     }else{
         ## Scenario 2.1:Sigmoid
-        rs1 <- compute_r_vec(s = S, t = T_l, theta = 1.2, sce = 2.1)
-        gs1 <- log(T_l + 2)
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = 2, sce = 2.1)
+        gs1 <- 1
         mus1 <- rs1 * gs1
 
-        # Scenario 2.2: Weibull
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = log(c(0.8, 2)), sce = 2.2)
-        gs2 <- sqrt(T_l + 1)
+        # Scenario 2.2: skewed poly
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -2), sce = 2.2)
+        gs2 <- 1 + 0.05 * T_l
         mus2 <- rs2 * gs2
     }
 
