@@ -107,16 +107,20 @@ arma::vec compute_r_vec(arma::vec s,
     double tau = 20.0;
 
     if (sce == 2.1) {
+        //Sigmoid shape centered at s ≈ 0.5·t
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
 
     } else if (sce == 2.2) {
+        //Pure polynomial (no t)
         r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
 
     } else if (sce == 1.1) {
+        //Bump-shaped curve with shift + tail
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
 
     } else if (sce == 1.2) {
+        //General shape with interaction s·t
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
                          + theta(2) * (s/tau) % (t/tau));
 
@@ -139,21 +143,25 @@ Rcpp::List compute_r_dr(arma::vec s,
     arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
 
     if (sce == 2.1) {
+        //Sigmoid shape centered at s ≈ 0.5·t
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
         dr.col(0) = r % (1 - r) % ((s/tau) - 0.5 * (t/tau));
 
     } else if (sce == 2.2) {
+        //Pure polynomial (no t)
         r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
         dr.col(0) = r % (s/tau);
         dr.col(1) = r % (s/tau) % (s/tau);
 
     } else if (sce == 1.1) {
+        //Bump-shaped curve with shift + tail
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
         dr.col(0) = -r % diff % diff;
         dr.col(1) = r % (s/tau);
 
     } else if (sce == 1.2) {
+        //General shape with interaction s·t
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
                     + theta(2) * (s/tau) % (t/tau));
         dr.col(0) = r % (s/tau) % (s/tau);

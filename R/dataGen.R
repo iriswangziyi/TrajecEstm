@@ -40,16 +40,16 @@
 simData2 <- function(T0param = c(lambda = 0.1,
                                  beta_X1 = 0.5,
                                  beta_X2 = 0.3),
-                     beta0 = c(beta11 = .5,
-                               beta12 = -0.5,
-                               beta21 = .5,
-                               beta22 = -0.5),
+                     beta0 = c(beta11 = 1,
+                               beta12 = -1,
+                               beta21 = 1,
+                               beta22 = -1),
                      N = 500,
                      scenario = 2)
 {
 
     ## underlying population
-    N0 <- 2*N
+    N0 <- 5*N
     ## Generate X1 and X2
     # X1_0 is time-varying covariate ~binary, jump from 0 to 1 at threshold0
     # X2_0 fixed time-invariant covariates ~follow unif(0, 1)
@@ -120,7 +120,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
     threshold <- threshold0[ind == TRUE][1:N]
 
     ## residual censoring time after enrollment: C
-    C <- rexp(N, rate = 0.05)
+    C <- rexp(N, rate = 0.045)
 
     # WANT: censoring_rate = P(A+C<T) ~0.25
     #censoring_rate <- sum(A + C < T) / N #0.22
