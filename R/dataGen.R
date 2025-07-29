@@ -171,7 +171,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
     # Compute marker trajectory μ_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
         # Scenario 1.1: bell poly
-        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2,1), sce = 1.1)
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2, 1), sce = 1.1)
         gs1 <- log(T_l + 2)
         mus1 <- rs1 * gs1
 

@@ -111,9 +111,7 @@ double mu_r(arma::uword j,
         double u = (t - Z(i)) / h;
 
         if (delPi(i)==j && std::abs(u) < 1.0) {
-
             double w = 1.0 - u * u;
-
             den += w * std::exp( xbj(i) ) * r(i);
             num += w * Y(i);
         }
