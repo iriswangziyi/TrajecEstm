@@ -73,6 +73,26 @@ double mu6_gamma(arma::uword j,
 
 
 // [[Rcpp::export]]
+/*
+ mu_r: kernel-smoothed baseline mean estimator at (t, s) for trajectory j.
+
+ where K(u) = (1 − u^2)·1{|u|<1} (Epanechnikov), beta_j and theta_j are packed in btj,
+ and r(·,·; theta, sce) is scenario-specific.
+
+ Args:
+ j       : which trajectory (1 or 2)
+ t, a    : evaluation time t and landmark s (named 'a' here)
+ h       : bandwidth
+ btj     : concatenated parameters c(beta_j, theta_j)
+ X (p×n) : design matrix (rows covariates, cols subjects)
+ Y (n)   : response
+ delPi   : del_i in {1,2}, length n
+ A, Z    : subject-level s_i and time Z_i (length n)
+ sce     : scenario code (1.1, 1.2, 2.1, 2.2)
+
+ Returns:
+ scalar \hat{mu}_j(t, s).
+ */
 double mu_r(arma::uword j,
             double t,
             double a,
@@ -91,34 +111,32 @@ double mu_r(arma::uword j,
     arma::vec bj = btj(arma::regspace<arma::uvec>(0, p - 1));
     arma::vec theta = btj(arma::regspace<arma::uvec>(p, 1, btj.n_elem - 1));
 
-        //TODO: note, delete comment later
-    //when case of gamma, need theta > 0
-    //i handle this in r, so no worry here
-
     arma::vec xbj = X.t() * bj;
 
-    // generic r based on scenario
+    // r_i = r(A_i, Z_i; theta) for each subject i under the given scenario
     arma::vec r = compute_r_vec(A, Z, theta, sce);
 
-    double num = 0.0;
-    double den = 0.0;
+    double num = 0.0; den = 0.0;
 
-    if(t < h) {
-        t = h;
-    }
+    if(t < h) t = h;
 
     for (int i = 0; i < n; i++) {
         double u = (t - Z(i)) / h;
 
         if (delPi(i)==j && std::abs(u) < 1.0) {
+            // Epanechnikov kernel support
             double w = 1.0 - u * u;
             den += w * std::exp( xbj(i) ) * r(i);
             num += w * Y(i);
         }
     }
 
-    // r at a specific (a, t)
+    // r(s, t; theta) at the evaluation point (s = a, t)
     double r_star = compute_r_scalar(a, t, theta, sce);
+
+    // small numerical guard
+    const double eps = 1e-12;
+    if (den <= eps) return NA_REAL; // or 0.0 if prefer silent zero
 
     return (num / den) * r_star;
 }

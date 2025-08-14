@@ -56,13 +56,25 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
     }
 }
 
-//only have sigmoiod case, sce=2, for now
-//r  = 1 / (1 + exp(theta(0) * (a - 0.5 * z)));
-//dr = r % (1 - r) % (a - 0.5 * z); // d r / d theta
-
-
-// Updated: compute_r_scalar for new exp(poly) scenarios
 // [[Rcpp::export]]
+/*
+ compute_r_scalar: scalar r(s, t; θ, sce) at a single (s, t).
+
+ Let s* = s/tau and t* = t/tau with tau = 20.0 (fixed scaling).
+
+ Scenarios:
+ 2.1 (Sigmoid):
+ r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
+
+ 2.2 (Polynomial in s only):
+ log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
+
+ 1.1 (Bell / bump with shift):
+ log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
+
+ 1.2 (General polynomial with interaction):
+ log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
+ */
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
@@ -72,20 +84,23 @@ double compute_r_scalar(double s,
     double tau = 20.0;
 
     if (sce == 2.1) {
-        // Sigmoid
+        // Sigmoid shape centered near s* = 0.5 · t*
         r = 1.0 / (1.0 + std::exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
 
     } else if (sce == 2.2) {
-        // Poly2: log(r) = θ1·s + θ2 s^2
+        // Polynomial in s only (no t):
+        //Poly2:log r = theta1 · s* + theta2 · (s*)^2
         r = std::exp(theta(0) * (s/tau) + theta(1) * (s/tau) *(s/tau));
 
     } else if (sce == 1.1) {
-        // Poly3: log(r) = -θ1·(s - 0.5t)^2 + θ2
+        // Bell:
+        //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         double diff = (s/tau) - 0.5 * (t/tau);
         r = std::exp(-theta(0) * diff * diff + theta(1) * (s/tau));
 
     } else if (sce == 1.2) {
-        // Poly4: log(r) = θ1·s^2 + θ2·s + θ3
+        // General poly with interaction:
+        //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = std::exp(theta(0) * (s/tau) * (s/tau) + theta(1) * (s/tau)
                          + theta(2) * (s/tau) * (t/tau));
 
@@ -96,8 +111,29 @@ double compute_r_scalar(double s,
     return r;
 }
 
-// Updated: compute_r_vec
+
 // [[Rcpp::export]]
+/*
+ compute_r_vec: elementwise r(s_i, t_i; theta, sce) for vectors s and t (same length).
+
+ Let s* = s/tau and t* = t/tau with tau = 20.0 (fixed scaling).
+
+ Scenarios:
+ 2.1 (Sigmoid):
+ r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
+
+ 2.2 (Polynomial in s only):
+ log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
+
+ 1.1 (Bell / bump with shift):
+ log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
+
+ 1.2 (General polynomial with interaction):
+ log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
+
+ Returns:
+ arma::vec of length s.n_elem.
+ */
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
@@ -107,20 +143,23 @@ arma::vec compute_r_vec(arma::vec s,
     double tau = 20.0;
 
     if (sce == 2.1) {
-        //Sigmoid shape centered at s ≈ 0.5·t
+        // Sigmoid shape centered near s* = 0.5 · t*
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
 
     } else if (sce == 2.2) {
-        //Pure polynomial (no t)
+        // Polynomial in s only (no t):
+        //log r = theta1 · s* + theta2 · (s*)^2
         r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
 
     } else if (sce == 1.1) {
-        //Bump-shaped curve with shift + tail
+        // Bell:
+        //log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
 
     } else if (sce == 1.2) {
-        //General shape with interaction s·t
+        // General poly with interaction:
+        //log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
                          + theta(2) * (s/tau) % (t/tau));
 
@@ -131,37 +170,79 @@ arma::vec compute_r_vec(arma::vec s,
     return r;
 }
 
-// Updated: compute_r_dr
 // [[Rcpp::export]]
+/*
+ compute_r_dr: vectorized r(s_i, t_i; theta, sce) and its gradient wrt theta.
+
+ Inputs:
+ s, t   : vectors of the same length n (paired evaluations)
+ theta  : parameter vector (length depends on scenario)
+ sce    : scenario code in {1.1, 1.2, 2.1, 2.2}
+
+ Scaling:
+ Let s* = s/tau and t* = t/tau with tau = 20.0.
+
+ Output:
+ List with
+ r  : arma::vec (n)          — r(s_i, t_i; theta, sce)
+ dr : arma::mat (n × p)      — gradient wrt theta; column k is dr/dtheta_k
+
+ Scenarios:
+ 2.1 (Sigmoid):
+ r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
+ dr/dtheta1 = r (1 − r) · u
+
+ 2.2 (Polynomial in s only):
+ log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
+ dr/dtheta1 = r · s*
+ dr/dtheta2 = r · (s*)^2
+
+ 1.1 (Bell / bump with shift):
+ log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
+ dr/dtheta1 = r · (− diff^2)
+ dr/dtheta2 = r · s*
+
+ 1.2 (General polynomial with s–t interaction):
+ log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
+ dr/dtheta1 = r · (s*)^2
+ dr/dtheta2 = r · s*
+ dr/dtheta3 = r · s* · t*
+ */
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
                         double sce)
 {
+    if (s.n_elem != t.n_elem) Rcpp::stop("s and t must have the same length");
+    if (theta.n_elem != dr.n_cols) Rcpp::stop("theta length and dr columns mismatch");
+
     double tau = 20.0;
     arma::vec r(s.n_elem);
     arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
 
     if (sce == 2.1) {
-        //Sigmoid shape centered at s ≈ 0.5·t
+        // Sigmoid shape centered near s* = 0.5 · t*
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
         dr.col(0) = r % (1 - r) % ((s/tau) - 0.5 * (t/tau));
 
     } else if (sce == 2.2) {
-        //Pure polynomial (no t)
+        // Polynomial in s only (no t):
+        //Poly2:log r = theta1 · s* + theta2 · (s*)^2
         r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
         dr.col(0) = r % (s/tau);
         dr.col(1) = r % (s/tau) % (s/tau);
 
     } else if (sce == 1.1) {
-        //Bump-shaped curve with shift + tail
+        // Bell:
+        //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
         dr.col(0) = -r % diff % diff;
         dr.col(1) = r % (s/tau);
 
     } else if (sce == 1.2) {
-        //General shape with interaction s·t
+        // General poly with interaction:
+        //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
                     + theta(2) * (s/tau) % (t/tau));
         dr.col(0) = r % (s/tau) % (s/tau);
