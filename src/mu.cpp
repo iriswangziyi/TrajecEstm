@@ -72,7 +72,7 @@ double mu6_gamma(arma::uword j,
 }
 
 
-// [[Rcpp::export]]
+
 /*
  mu_r: kernel-smoothed baseline mean estimator at (t, s) for trajectory j.
 
@@ -93,6 +93,7 @@ double mu6_gamma(arma::uword j,
  Returns:
  scalar \hat{mu}_j(t, s).
  */
+// [[Rcpp::export]]
 double mu_r(arma::uword j,
             double t,
             double a,
@@ -116,7 +117,8 @@ double mu_r(arma::uword j,
     // r_i = r(A_i, Z_i; theta) for each subject i under the given scenario
     arma::vec r = compute_r_vec(A, Z, theta, sce);
 
-    double num = 0.0; den = 0.0;
+    double num = 0.0;
+    double den = 0.0;
 
     if(t < h) t = h;
 

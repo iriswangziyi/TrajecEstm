@@ -29,6 +29,10 @@ mu6_gamma <- function(j, t, a, h, btj, X, Y, delPi, A, Z) {
     .Call(`_TrajecEstm_mu6_gamma`, j, t, a, h, btj, X, Y, delPi, A, Z)
 }
 
+mu_r <- function(j, t, a, h, btj, X, Y, delPi, A, Z, sce) {
+    .Call(`_TrajecEstm_mu_r`, j, t, a, h, btj, X, Y, delPi, A, Z, sce)
+}
+
 matK <- function(Z, h1) {
     .Call(`_TrajecEstm_matK`, Z, h1)
 }
@@ -39,6 +43,18 @@ matK_sparse <- function(Z, h1) {
 
 matK_dispatch <- function(Z, h1, use_sparse) {
     .Call(`_TrajecEstm_matK_dispatch`, Z, h1, use_sparse)
+}
+
+compute_r_scalar <- function(s, t, theta, sce) {
+    .Call(`_TrajecEstm_compute_r_scalar`, s, t, theta, sce)
+}
+
+compute_r_vec <- function(s, t, theta, sce) {
+    .Call(`_TrajecEstm_compute_r_vec`, s, t, theta, sce)
+}
+
+compute_r_dr <- function(s, t, theta, sce) {
+    .Call(`_TrajecEstm_compute_r_dr`, s, t, theta, sce)
 }
 
 gradi <- function(btj, j, X, Y_A, A, Z, Kmat, h1, tau0, tau1) {

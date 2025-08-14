@@ -56,7 +56,7 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
     }
 }
 
-// [[Rcpp::export]]
+
 /*
  compute_r_scalar: scalar r(s, t; θ, sce) at a single (s, t).
 
@@ -75,6 +75,7 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
  1.2 (General polynomial with interaction):
  log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
  */
+// [[Rcpp::export]]
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
@@ -112,7 +113,7 @@ double compute_r_scalar(double s,
 }
 
 
-// [[Rcpp::export]]
+
 /*
  compute_r_vec: elementwise r(s_i, t_i; theta, sce) for vectors s and t (same length).
 
@@ -134,6 +135,7 @@ double compute_r_scalar(double s,
  Returns:
  arma::vec of length s.n_elem.
  */
+// [[Rcpp::export]]
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
@@ -170,7 +172,7 @@ arma::vec compute_r_vec(arma::vec s,
     return r;
 }
 
-// [[Rcpp::export]]
+
 /*
  compute_r_dr: vectorized r(s_i, t_i; theta, sce) and its gradient wrt theta.
 
@@ -208,14 +210,12 @@ arma::vec compute_r_vec(arma::vec s,
  dr/dtheta2 = r · s*
  dr/dtheta3 = r · s* · t*
  */
+// [[Rcpp::export]]
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
                         double sce)
 {
-    if (s.n_elem != t.n_elem) Rcpp::stop("s and t must have the same length");
-    if (theta.n_elem != dr.n_cols) Rcpp::stop("theta length and dr columns mismatch");
-
     double tau = 20.0;
     arma::vec r(s.n_elem);
     arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
