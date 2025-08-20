@@ -6,7 +6,82 @@
 #include "utils.h"
 
 // --------------------
-// Kernel Matrix Helper
+// Kernel Matrix Helper for Model II
+// K_h(Z_k-Z_i),  Fourth-Order Triweight
+// u = (Z_k-Z_i)/h, K_h = 1/h * k(u),
+// (1/h) * (315/512) * (3 - 11 u^2) * (1 - u^2)^3 * I(|u|<=1)
+// --------------------
+// [[Rcpp::export]]
+arma::mat matK_tri4(const arma::vec& Z,
+                    double h) {
+
+    int n = Z.n_elem;
+
+    // Pairwise differences: Z_i - Z_k
+    arma::mat Zmat = arma::repmat(Z, 1, n);
+    arma::mat U2   = arma::square((Zmat - Zmat.t())/h);
+
+    //we can make this faster, by implementing a loop
+    //for every U2's elem > 1, mat K's elem = 0
+
+    // Compute kernel values **only for valid U**
+    arma::mat K = (315.0 / 512.0) * (3.0 - 11.0 * U2) %
+        arma::pow((1.0 - U2), 3) % (U2 <= 1)/ h;
+
+    return K;
+}
+
+//Check performance
+//if using loop structure, should write both kernel together
+// [[Rcpp::export]]
+arma::mat matK_tri4_loop(const arma::vec& Z,
+                          const arma::vec& S,
+                          double h) {
+
+    const int n = Z.n_elem;
+    arma::mat K(n, n, arma::fill::zeros);
+
+    const double inv_h = 1.0 / h;
+    const double c = 315.0 / 512.0;
+
+    double diagVal2 = c * 3.0 * inv_h * c * 3.0 * inv_h;
+
+
+    for (int i = 0; i < n; ++i) {
+        // diagonal: u = 0 => (3 - 11*0)*(1-0)^3 = 3
+        K(i, i) = diagVal2;
+
+        for (int k = i + 1; k < n; ++k) {
+            double d = (Z(i) - Z(k)) * inv_h;  // u = (Zi - Zk)/h
+            double ds = (S(i) - S(k)) * inv_h;  // ds = (Si - Sk)/h
+
+            // outside support > 0
+            if (std::abs(d) > 1.0 || std::abs(ds) > 1.0) continue;
+
+            double u2 = d * d;
+            double ds2 = ds * ds;
+
+            double omu2 = 1.0 - u2;           // (1 - u^2)
+            double omds2 = 1.0 - ds2;
+
+            double val  = c * (3.0 - 11.0 * u2) * omu2 * omu2 * omu2 * inv_h *
+                c * (3.0 - 11.0 * ds2) * omds2 * omds2 * omds2 * inv_h;
+
+            K(i, k) = val;
+            K(k, i) = val;                          // symmetry
+        }
+    }
+    return K;
+}
+
+
+// if we are doing K_h(A_k+ V_{kq}-A_i+V_{il}),  Fourth-Order Triweight
+// our Z_k just be A_k+ V_{kq}, so we can still use this matK_tri4(A_k+ V_{kq}, h)
+
+
+// --------------------
+// Kernel Matrix Helper for Model I
+// K_h(Z_k-Z_i),  Second-Order Epanechnikov
 // --------------------
 // [[Rcpp::export]]
 arma::mat matK(const arma::vec& Z,
@@ -14,17 +89,13 @@ arma::mat matK(const arma::vec& Z,
 
     int n = Z.n_elem;
 
-    // Step 1: Compute Z differences normally
-    arma::mat Z_diff = arma::repmat(Z, 1, n) - arma::repmat(Z.t(), n, 1);
-    //Rcpp::Rcout << Z_diff;
+    // Compute Z differences normally
+    arma::mat U = (arma::repmat(Z, 1, n) - arma::repmat(Z.t(), n, 1))/h1;
 
-    // Step 2: Compute scaled differences
-    arma::mat U = Z_diff / h1;
-
-    // Step 3: Mask U before computing K (skip invalid kernel regions)
+    // idea: Mask U before computing K (skip invalid kernel regions)
     // U.elem(arma::abs(U) >= 1).zeros();
 
-    // Step 4: Compute kernel values **only for valid U**
+    // Compute kernel values **only for valid U**
     arma::mat K = 0.75 * (1 - arma::square(U)) % (arma::abs(U) <= 1)/ h1;
 
     return K;

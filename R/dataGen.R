@@ -168,7 +168,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
     ## 2. sigmoid function: rj(s,t;θ) = 1/(1 + e^{θ(s-t/2)}),gj0(t)=1 or 1/(1+t)
     ## true theta: cause1:1, cause2:2
 
-    # Compute marker trajectory μ_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
+    # Compute marker trajectory mu_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
         # Scenario 1.1: bell poly
         rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2, 1), sce = 1.1)

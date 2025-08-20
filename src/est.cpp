@@ -4,7 +4,6 @@
 #include <RcppArmadillo.h>
 #include <RcppEnsmallen.h>
 
-#include "mu.h"
 #include "utils.h"
 
 // Compute the PPL assuming semi-parametric baseline trajectory but no survival model
@@ -60,7 +59,7 @@ double PPL_sigmoid(arma::vec btj,
 
 
 //--------------------------------------------------
-// Objective functor: joint PPL value + gradient
+// Objective functoion: joint PPL value + gradient
 //--------------------------------------------------
 struct PPLObjective_V1 {
     const arma::uword  j;          // event‑type index (unused internally for now)
@@ -178,14 +177,14 @@ arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
     opt.MinGradientNorm() = tol;
 
     opt.Optimize(fn, init);   // solution written into `init`
-    return init;              // (β̂, log θ̂)
+    return init;              //(beta hat, theta hat)
 }
 
 
 //ANOTHER WAY!!!
 //Yifei cool code updated ver
 //--------------------------------------------------
-// Objective functor: joint PPL value + gradient
+// Objective function: joint PPL value + gradient
 //--------------------------------------------------
 struct PPLObjective_V2 {
     const arma::uword  j;          // event‑type index (unused internally for now)
@@ -256,8 +255,10 @@ struct PPLObjective_V2 {
 
 };
 
+
+
 //--------------------------------------------------
-// R‑level wrapper
+// yifei R‑level wrapper
 //--------------------------------------------------
 // [[Rcpp::export]]
 arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
@@ -280,7 +281,7 @@ arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
     opt.MinGradientNorm() = tol;
 
     opt.Optimize(fn, init);   // solution written into `init`
-    return init;              // (β̂, log θ̂)
+    return init;              // (beta hat, theta hat)
 }
 
 // [[Rcpp::export]]
@@ -333,100 +334,3 @@ double PPL6_gamma(arma::uword j,
 
     return -logPPL;
 }
-
-// [[Rcpp::export]]
-double PPL6_exp(arma::uword j,
-                arma::vec btj,
-                const arma::mat& X,
-                const arma::vec& Y_A,
-                const arma::vec& A,
-                const arma::vec& Z,
-                const arma::uvec& delPi,
-                double h1,
-                double tau0,
-                double tau1) {
-
-    // Number of observationsd
-    int n = A.n_elem;
-    double logPPL = 0;
-    int p = X.n_rows;
-
-
-    Rcpp::Function pe("pexp");
-
-    arma::vec bj = btj(arma::regspace<arma::uvec>(0,p-1));
-    double theta1 = exp(btj(p));
-
-    Rcpp::NumericVector gA = pe(A, theta1);
-    //Rcpp::NumericVector gZ = pg(Z, theta1);
-    Rcpp::NumericVector r = gA;///gZ;
-    //Rcpp::NumericVector gA = dg(A, theta(0), theta(1));
-    //Rcpp::NumericVector r = gA +theta(2);
-    arma::vec xbj = X.t() * bj;
-
-    for( int i = 0; i<n; i++ )
-    {
-        if(delPi(i) == j && Z(i) >= tau0 && Z(i) <= tau1)
-        {
-            double den = 0;
-            for( int k = 0; k<n; k++ )
-            {
-                if(delPi(k) == j &&  Z(i)-Z(k) < h1 && Z(i)-Z(k) > -h1)
-                {
-                    den = den +  0.75 * ( 1-pow(( Z(i)-Z(k) )/h1,2) ) / h1 * exp( xbj(k) ) * r[k];
-                }
-            }
-            logPPL = logPPL +  Y_A(i) *  ( xbj(i) + log(r(i)) - log(den) );
-        }
-    }
-
-
-
-    return -logPPL;
-}
-
-
-
-// [[Rcpp::export]]
-double PPL6_r(arma::uword j,
-              arma::vec btj,
-              const arma::mat& X,
-              const arma::vec& Y_A,
-              const arma::vec& A,
-              const arma::vec& Z,
-              const arma::uvec& delPi,
-              double h1) {
-
-    // Number of observationsd
-    int n = A.n_elem;
-    double logPPL = 0;
-    arma::uword p = X.n_rows;
-
-    arma::vec bj = btj(arma::regspace<arma::uvec>(0,p-1));
-    arma::vec theta = (btj(arma::regspace<arma::uvec>(p, 1, btj.n_elem-1)));
-    // double theta2 = exp(btj(p+1));
-
-    arma::vec r =  rfun(A,Z,theta);
-
-    arma::vec xbj = X.t() * bj;
-
-    for( int i = 0; i<n; i++ )
-    {
-        if(delPi(i) == j)
-        {
-            double den = 0;
-            for( int k = 0; k<n; k++ )
-            {
-                if(delPi(k) == j && Z(i)-Z(k) < h1 && Z(i)-Z(k) > -h1)
-                {
-                    den = den +  0.75 * ( 1-pow(( Z(i)-Z(k) )/h1,2) ) / h1 * exp( xbj(k) ) * r(k);
-                }
-            }
-            logPPL = logPPL +  Y_A(i) *  ( xbj(i) + log(r(i)) - log(den) );
-        }
-    }
-
-
-    return -logPPL;
-}
-
