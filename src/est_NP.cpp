@@ -4,6 +4,7 @@
 #include <RcppArmadillo.h>
 #include <RcppEnsmallen.h>
 
+#include "est_NP.h"
 #include "utils.h"
 
 //--------------------------------------------------

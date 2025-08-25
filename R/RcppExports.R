@@ -13,24 +13,24 @@ estimate_beta_theta_lbfgs_V2 <- function(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce,
     .Call(`_TrajecEstm_estimate_beta_theta_lbfgs_V2`, j, X, Y_A, A, Z, Kmat, tau0, tau1, sce, init, tol, max_iter)
 }
 
-PPL6_gamma <- function(j, btj, X, Y_A, A, Z, delPi, h1, tau0, tau1) {
-    .Call(`_TrajecEstm_PPL6_gamma`, j, btj, X, Y_A, A, Z, delPi, h1, tau0, tau1)
-}
-
-PPL6_exp <- function(j, btj, X, Y_A, A, Z, delPi, h1, tau0, tau1) {
-    .Call(`_TrajecEstm_PPL6_exp`, j, btj, X, Y_A, A, Z, delPi, h1, tau0, tau1)
-}
-
-PPL6_r <- function(j, btj, X, Y_A, A, Z, delPi, h1) {
-    .Call(`_TrajecEstm_PPL6_r`, j, btj, X, Y_A, A, Z, delPi, h1)
-}
-
-mu6_gamma <- function(j, t, a, h, btj, X, Y, delPi, A, Z) {
-    .Call(`_TrajecEstm_mu6_gamma`, j, t, a, h, btj, X, Y, delPi, A, Z)
+estimate_beta_NP <- function(j, X, Y_A, A, Z, Kmat, d, tau0, tau1, init, tol = 1e-8, max_iter = 1000L) {
+    .Call(`_TrajecEstm_estimate_beta_NP`, j, X, Y_A, A, Z, Kmat, d, tau0, tau1, init, tol, max_iter)
 }
 
 mu_r <- function(j, t, a, h, btj, X, Y, delPi, A, Z, sce) {
     .Call(`_TrajecEstm_mu_r`, j, t, a, h, btj, X, Y, delPi, A, Z, sce)
+}
+
+mu_NP <- function(j, t, a, h1, h2, bj, X, Y, delPi, A, Z) {
+    .Call(`_TrajecEstm_mu_NP`, j, t, a, h1, h2, bj, X, Y, delPi, A, Z)
+}
+
+matK_tri4 <- function(Z, h) {
+    .Call(`_TrajecEstm_matK_tri4`, Z, h)
+}
+
+matK_tri4_loop <- function(Z, S, h) {
+    .Call(`_TrajecEstm_matK_tri4_loop`, Z, S, h)
 }
 
 matK <- function(Z, h1) {

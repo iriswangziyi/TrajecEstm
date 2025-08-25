@@ -4,6 +4,7 @@
 #include <RcppArmadillo.h>
 #include <RcppEnsmallen.h>
 
+#include "est.h"
 #include "utils.h"
 
 // Compute the PPL assuming semi-parametric baseline trajectory but no survival model
@@ -284,53 +285,3 @@ arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
     return init;              // (beta hat, theta hat)
 }
 
-// [[Rcpp::export]]
-double PPL6_gamma(arma::uword j,
-                  arma::vec btj,
-                  const arma::mat& X,
-                  const arma::vec& Y_A,
-                  const arma::vec& A,
-                  const arma::vec& Z,
-                  const arma::uvec& delPi,
-                  double h1,
-                  double tau0,
-                  double tau1) {
-
-    // Number of observations
-    int n = A.n_elem;
-    double logPPL = 0;
-    int p = X.n_rows;
-
-    Rcpp::Function dg("dgamma"); //use R function in CPP
-    Rcpp::Function pg("pgamma");
-
-    arma::vec bj = btj(arma::regspace<arma::uvec>(0,p-1));
-    double theta1 = exp(btj(p));
-
-    Rcpp::NumericVector gA = pg(A, theta1);
-    //Rcpp::NumericVector gZ = pg(Z, theta1);
-    Rcpp::NumericVector r = gA;///gZ;
-    //Rcpp::NumericVector gA = dg(A, theta(0), theta(1));
-    //Rcpp::NumericVector r = gA +theta(2);
-    arma::vec xbj = X.t() * bj;
-
-    for( int i = 0; i<n; i++ )
-    {
-        if(delPi(i) == j && Z(i) >= tau0 && Z(i) <= tau1)
-        {
-            double den = 0;
-            for( int k = 0; k<n; k++ )
-            {
-                if(delPi(k) == j &&  Z(i)-Z(k) < h1 && Z(i)-Z(k) > -h1)
-                {
-                    den = den +  0.75 * ( 1-pow(( Z(i)-Z(k) )/h1,2) ) / h1 * exp( xbj(k) ) * r[k];
-                }
-            }
-            logPPL = logPPL +  Y_A(i) *  ( xbj(i) + log(r(i)) - log(den) );
-        }
-    }
-
-
-
-    return -logPPL;
-}
