@@ -15,7 +15,7 @@
 
  Args:
  j       : which trajectory (1 or 2)
- t, a    : evaluation time t and landmark s (named 'a' here)
+ t, s    : evaluation time t and landmark s
  h       : bandwidth
  btj     : concatenated parameters c(beta_j, theta_j)
  X (p×n) : design matrix (rows covariates, cols subjects)
@@ -30,17 +30,17 @@
 // [[Rcpp::export]]
 double mu_r(arma::uword j,
             double t,
-            double a,
+            double s,
             double h,
             const arma::vec& btj,
             const arma::mat& X,
             const arma::vec& Y,
             const arma::uvec& delPi,
-            const arma::vec& A,
+            const arma::vec& S,
             const arma::vec& Z,
             double sce)
 {
-    int n = A.n_elem;
+    int n = S.n_elem;
     int p = X.n_rows;
 
     arma::vec bj = btj(arma::regspace<arma::uvec>(0, p - 1));
@@ -48,8 +48,8 @@ double mu_r(arma::uword j,
 
     arma::vec xbj = X.t() * bj;
 
-    // r_i = r(A_i, Z_i; theta) for each subject i under the given scenario
-    arma::vec r = compute_r_vec(A, Z, theta, sce);
+    // r_i = r(S_i, Z_i; theta) for each subject i under the given scenario
+    arma::vec r = compute_r_vec(S, Z, theta, sce);
 
     double num = 0.0;
     double den = 0.0;
@@ -67,8 +67,8 @@ double mu_r(arma::uword j,
         }
     }
 
-    // r(s, t; theta) at the evaluation point (s = a, t)
-    double r_star = compute_r_scalar(a, t, theta, sce);
+    // r(s, t; theta) at the evaluation point (s, t)
+    double r_star = compute_r_scalar(s, t, theta, sce);
 
     // small numerical guard
     const double eps = 1e-12;

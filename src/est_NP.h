@@ -9,8 +9,8 @@
 //--------------------------------------------------
 arma::vec estimate_beta_NP(arma::uword          j,
                            const arma::mat&    X,
-                           const arma::vec&    Y_A,
-                           const arma::vec&    A,
+                           const arma::vec&    Y_S,
+                           const arma::vec&    S,
                            const arma::vec&    Z,
                            const arma::mat&    Kmat,
                            double              d,

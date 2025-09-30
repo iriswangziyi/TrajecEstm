@@ -4,7 +4,7 @@
 \alias{muNP_hat}
 \title{\code{muNP_hat}: baseline mean estimator \hat{\mu}(t,s)}
 \usage{
-muNP_hat(j, t, s, h1, h2, par, X, Y, deltaPi, A, Z)
+muNP_hat(j, t, s, h1, h2, par, X, Y, deltaPi, S, Z)
 }
 \arguments{
 \item{j}{integer {1,2}}

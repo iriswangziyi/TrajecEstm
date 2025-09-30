@@ -8,8 +8,8 @@
 #' @param deltaPi  length-n integer vector with values in {1,2}
 #' @param A,Z      length-n subject-level s and time vectors
 #' @export
-muNP_hat <- function(j, t, s, h1,h2, par, X, Y, deltaPi, A, Z) {
-    mu_NP(j = j, t = t, a = s, h1 = h1, h2 = h2, bj = par,
-         X = X, Y = Y, delPi = deltaPi, A = A, Z = Z)
+muNP_hat <- function(j, t, s, h1,h2, par, X, Y, deltaPi, S, Z) {
+    mu_NP(j = j, t = t, s = s, h1 = h1, h2 = h2, bj = par,
+         X = X, Y = Y, delPi = deltaPi, S = S, Z = Z)
 }
 

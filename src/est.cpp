@@ -16,8 +16,8 @@
 double PPL_sigmoid(arma::vec btj,
                    arma::uword j,
                     const arma::mat& X,
-                    const arma::vec& Y_A,
-                    const arma::vec& A,
+                    const arma::vec& Y,
+                    const arma::vec& S,
                     const arma::vec& Z,
                     const arma::mat& Kmat,
                     double h1,
@@ -25,7 +25,7 @@ double PPL_sigmoid(arma::vec btj,
                     double tau1) {
 
     // Number of observation
-    int n = A.n_elem;
+    int n = S.n_elem;
     int p = X.n_rows;
 
     // Split parameter vector
@@ -36,7 +36,7 @@ double PPL_sigmoid(arma::vec btj,
     // Compute reusable vectors
     arma::vec xbj = X.t() * bj;                // eta = Xβ
     arma::vec exp_xbj = exp(xbj);             // precompute exp(Xβ)
-    arma::vec r = 1 / (1 + exp(theta1 * (A - Z / 2))); // r_j(A, Z; θ)
+    arma::vec r = 1 / (1 + exp(theta1 * (S - Z / 2))); // r_j(S, Z; θ)
 
     arma::vec eXr = exp_xbj % r; // Precompute before loop
 
@@ -51,7 +51,7 @@ double PPL_sigmoid(arma::vec btj,
             //double den = arma::dot(Kmat.row(i), exp_xbj % r); //takes long time
             //double den = arma::dot(Kmat.row(i), eXr);
             double den = arma::dot(Kmat.col(i), eXr);
-            logPPL +=  Y_A(i) *  ( xbj(i) + log(r(i)) - log(den) );
+            logPPL +=  Y(i) *  ( xbj(i) + log(r(i)) - log(den) );
         }
     }
 
@@ -65,18 +65,18 @@ double PPL_sigmoid(arma::vec btj,
 struct PPLObjective_V1 {
     const arma::uword  j;          // event‑type index (unused internally for now)
     const arma::mat&   X;          // p × n design matrix (columns = subjects)
-    const arma::vec&   Y_A;        // counting‑process increment
-    const arma::vec&   A;          // visit time s
+    const arma::vec&   Y_S;        // counting‑process increment
+    const arma::vec&   S;          // visit time s
     const arma::vec&   Z;          // age since baseline t
     const arma::mat&   Kmat;       // symmetric kernel weight matrix
     const double       tau0;       // lower boundary for t
     const double       tau1;       // upper boundary for t
     const double       sce;         // Scenario
 
-    PPLObjective_V1(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_A_,
-                    const arma::vec& A_,  const arma::vec& Z_,  const arma::mat& Kmat_,
+    PPLObjective_V1(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_S_,
+                    const arma::vec& S_,  const arma::vec& Z_,  const arma::mat& Kmat_,
                     double tau0_,  double tau1_, double sce_)
-        : j(j_), X(X_), Y_A(Y_A_), A(A_), Z(Z_), Kmat(Kmat_),
+        : j(j_), X(X_), Y_S(Y_S_), S(S_), Z(Z_), Kmat(Kmat_),
           tau0(tau0_), tau1(tau1_), sce(sce_) {}
 
     // --------------------------------------------------
@@ -84,7 +84,7 @@ struct PPLObjective_V1 {
     // --------------------------------------------------
     double EvaluateWithGradient(const arma::mat& btj,
                                 arma::mat& grad) {
-        const int n = A.n_elem;
+        const int n = S.n_elem;
         const int p = X.n_rows;
         const int q = btj.n_elem - p;
 
@@ -102,12 +102,12 @@ struct PPLObjective_V1 {
         arma::vec exp_xbj = arma::exp(xbj);
 
         //TODO 06/20
-        //arma::vec r       = 1.0 / (1.0 + arma::exp(theta * (A - Z * 0.5)));
-        //arma::vec dr      = -r % (1.0 - r) % (A - Z * 0.5);      // dr/dtheta
+        //arma::vec r       = 1.0 / (1.0 + arma::exp(theta * (S - Z * 0.5)));
+        //arma::vec dr      = -r % (1.0 - r) % (S - Z * 0.5);      // dr/dtheta
 
         //change to this
-        Rcpp::List r_dr = compute_r_dr(A, Z, theta, sce);          // externally computed
-        //arma::mat dr = compute_dr(A, Z, theta);            // externally computed
+        Rcpp::List r_dr = compute_r_dr(S, Z, theta, sce);          // externally computed
+        //arma::mat dr = compute_dr(S, Z, theta);            // externally computed
         arma::vec r = r_dr["r"];
         arma::mat dr = r_dr["dr"]; //nxq
         arma::mat dr_t = dr.t(); //qxn
@@ -123,7 +123,7 @@ struct PPLObjective_V1 {
             if (Z(i) < tau0 || Z(i) > tau1) continue;   // boundary skip
 
             //double denom = arma::dot(Kmat.col(i), eXr); // Kᵢ·(exp_xbj ∘ r)
-            double yi    = Y_A(i);
+            double yi    = Y_S(i);
 
             // ---- gradient contributions ----
             arma::vec ki = Kmat.col(i);
@@ -160,8 +160,8 @@ struct PPLObjective_V1 {
 // [[Rcpp::export]]
 arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
                                        const arma::mat&    X,
-                                       const arma::vec&    Y_A,
-                                       const arma::vec&    A,
+                                       const arma::vec&    Y_S,
+                                       const arma::vec&    S,
                                        const arma::vec&    Z,
                                        const arma::mat&    Kmat,
                                        double              tau0,
@@ -171,7 +171,7 @@ arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
                                        double              tol       = 1e-8,
                                        std::size_t         max_iter  = 1000) {
 
-    PPLObjective_V1 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce);
+    PPLObjective_V1 fn(j, X, Y_S, S, Z, Kmat, tau0, tau1, sce);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;
@@ -190,18 +190,18 @@ arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
 struct PPLObjective_V2 {
     const arma::uword  j;          // event‑type index (unused internally for now)
     const arma::mat&   X;          // p × n design matrix (columns = subjects)
-    const arma::vec&   Y_A;        // counting‑process increment
-    const arma::vec&   A;          // visit time s
+    const arma::vec&   Y_S;        // counting‑process increment
+    const arma::vec&   S;          // visit time s
     const arma::vec&   Z;          // age since baseline t
     const arma::mat&   Kmat;       // symmetric kernel weight matrix
     const double       tau0;       // lower boundary for t
     const double       tau1;       // upper boundary for t
     const double       sce;         // Scenario
 
-    PPLObjective_V2(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_A_,
-                    const arma::vec& A_,  const arma::vec& Z_,  const arma::mat& Kmat_,
+    PPLObjective_V2(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_S_,
+                    const arma::vec& S_,  const arma::vec& Z_,  const arma::mat& Kmat_,
                     double tau0_,  double tau1_, double sce_)
-        : j(j_), X(X_), Y_A(Y_A_), A(A_), Z(Z_), Kmat(Kmat_),
+        : j(j_), X(X_), Y_S(Y_S_), S(S_), Z(Z_), Kmat(Kmat_),
           tau0(tau0_), tau1(tau1_), sce(sce_) {}
 
     // --------------------------------------------------
@@ -211,7 +211,7 @@ struct PPLObjective_V2 {
     //NEW USE THIS written by Fei
     double EvaluateWithGradient(const arma::mat& btj,
                                 arma::mat& grad) {
-        //const arma::uword n = A.n_elem;
+        //const arma::uword n = S.n_elem;
         const arma::uword p = X.n_rows;
         const arma::uword q = btj.n_rows - p;  // number of theta parameters
 
@@ -223,13 +223,13 @@ struct PPLObjective_V2 {
         arma::vec xbj = X.t() * beta;                      // linear predictor
         arma::vec exp_xbj = arma::exp(xbj);                // exp(eta)
 
-        Rcpp::List r_dr = compute_r_dr(A, Z, theta, sce);              // externally computed
-        //arma::mat dr = compute_dr(A, Z, theta);            // externally computed
+        Rcpp::List r_dr = compute_r_dr(S, Z, theta, sce);              // externally computed
+        //arma::mat dr = compute_dr(S, Z, theta);            // externally computed
         arma::vec r = r_dr["r"];
         arma::mat dr = r_dr["dr"];
 
-        // Combined indicator and Y_A vector
-        arma::vec Y_valid = Y_A % ((Z >= tau0) % (Z <= tau1));
+        // Combined indicator and Y_S vector
+        arma::vec Y_valid = Y_S % ((Z >= tau0) % (Z <= tau1));
 
         // Precompute terms
         arma::vec exp_xbj_r = exp_xbj % r;                 // (n by 1)
@@ -264,8 +264,8 @@ struct PPLObjective_V2 {
 // [[Rcpp::export]]
 arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
                                        const arma::mat&    X,
-                                       const arma::vec&    Y_A,
-                                       const arma::vec&    A,
+                                       const arma::vec&    Y_S,
+                                       const arma::vec&    S,
                                        const arma::vec&    Z,
                                        const arma::mat&    Kmat,
                                        double              tau0,
@@ -275,7 +275,7 @@ arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
                                        double              tol       = 1e-8,
                                        std::size_t         max_iter  = 1000) {
 
-    PPLObjective_V2 fn(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce);
+    PPLObjective_V2 fn(j, X, Y_S, S, Z, Kmat, tau0, tau1, sce);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;

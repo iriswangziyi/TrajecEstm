@@ -13,18 +13,18 @@
 struct PPLObjective_NP {
     const arma::uword  j;          // event‑type index (unused internally for now)
     const arma::mat&   X;          // p × n design matrix (columns = subjects)
-    const arma::vec&   Y_A;        // counting‑process increment
-    const arma::vec&   A;          // visit time s
+    const arma::vec&   Y_S;        // counting‑process increment
+    const arma::vec&   S;          // visit time s
     const arma::vec&   Z;          // age since baseline t
     const arma::mat&   Kmat;       // symmetric kernel weight matrix
     const double       d;        // adjustment constant
     const double       tau0;       // lower boundary for t
     const double       tau1;       // upper boundary for t
 
-    PPLObjective_NP(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_A_,
-                    const arma::vec& A_,  const arma::vec& Z_,  const arma::mat& Kmat_,
+    PPLObjective_NP(arma::uword  j_,  const arma::mat&  X_,  const arma::vec& Y_S_,
+                    const arma::vec& S_,  const arma::vec& Z_,  const arma::mat& Kmat_,
                     double d_, double tau0_,  double tau1_)
-        : j(j_), X(X_), Y_A(Y_A_), A(A_), Z(Z_), Kmat(Kmat_),
+        : j(j_), X(X_), Y_S(Y_S_), S(S_), Z(Z_), Kmat(Kmat_),
           d(d_), tau0(tau0_), tau1(tau1_){}
 
     // --------------------------------------------------
@@ -33,7 +33,7 @@ struct PPLObjective_NP {
 
     double EvaluateWithGradient(const arma::mat& bj,
                                 arma::mat& grad) {
-        //const arma::uword n = A.n_elem;
+        //const arma::uword n = S.n_elem;
         const arma::uword p = X.n_rows;
 
         // Extract parameters
@@ -44,8 +44,8 @@ struct PPLObjective_NP {
         arma::vec xbj = X.t() * beta;                      // linear predictor
         arma::vec exp_xbj = arma::exp(xbj);                // exp(eta)
 
-        // Combined indicator and Y_A vector
-        arma::vec Y_valid = Y_A % (A >= tau0) % ((Z - d >= A) % (Z <= tau1));
+        // Combined indicator and Y_S vector
+        arma::vec Y_valid = Y_S % (S >= tau0) % ((Z - d >= S) % (Z <= tau1));
 
         // Precompute terms
         arma::mat weight_mat = Kmat.each_col() % exp_xbj; // (n by n)
@@ -75,8 +75,8 @@ struct PPLObjective_NP {
 // [[Rcpp::export]]
 arma::vec estimate_beta_NP(arma::uword          j,
                            const arma::mat&    X,
-                           const arma::vec&    Y_A,
-                           const arma::vec&    A,
+                           const arma::vec&    Y_S,
+                           const arma::vec&    S,
                            const arma::vec&    Z,
                            const arma::mat&    Kmat,
                            double              d,
@@ -86,7 +86,7 @@ arma::vec estimate_beta_NP(arma::uword          j,
                            double              tol       = 1e-8,
                            std::size_t         max_iter  = 1000) {
 
-    PPLObjective_NP fn(j, X, Y_A, A, Z, Kmat, d, tau0, tau1);
+    PPLObjective_NP fn(j, X, Y_S, S, Z, Kmat, d, tau0, tau1);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;

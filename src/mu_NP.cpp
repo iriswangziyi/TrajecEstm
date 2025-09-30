@@ -15,14 +15,14 @@ where K_h(),  Fourth-Order Triweight
 
 Args:
     j       : which trajectory (1 or 2)
-t, a    : evaluation time t and landmark s (named 'a' here)
+t, s    : evaluation time t and landmark s
 h1       : bandwidth for Kh(Zi-Zk)
 h2       : bandwidth for Kh(Ai+Vil-(Ak+Vkq))
 bj     : concatenated parameters c(beta_j)
 X (p×n) : design matrix (rows covariates, cols subjects)
 Y (n)   : response
 delPi   : del_i in {1,2}, length n
-A, Z    : subject-level s_i and time Z_i (length n)
+S, Z    : subject-level s_i and time Z_i (length n)
 
 Returns:
     scalar \hat{mu}_j(t, s).
@@ -31,17 +31,17 @@ Returns:
 // [[Rcpp::export]]
 double mu_NP(arma::uword j,
             double t,
-            double a,
+            double s,
             double h1,
             double h2,
             const arma::vec& bj,
             const arma::mat& X,
             const arma::vec& Y,
             const arma::uvec& delPi,
-            const arma::vec& A,
+            const arma::vec& S,
             const arma::vec& Z)
 {
-    int n = A.n_elem;
+    int n = S.n_elem;
 
     arma::vec xbj = X.t() * bj;
 
@@ -50,7 +50,7 @@ double mu_NP(arma::uword j,
 
     for (int i = 0; i < n; i++) {
         double u1sqr = (t - Z(i)) / h1 * (t - Z(i)) / h1;
-        double u2sqr = (a - A(i)) / h2 * (a - A(i)) / h2;
+        double u2sqr = (s - S(i)) / h2 * (s - S(i)) / h2;
 
         if (delPi(i)==j && u1sqr < 1.0 && u1sqr < 1.0) {
             // 4th Triweight kernel support

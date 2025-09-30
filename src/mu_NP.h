@@ -10,14 +10,14 @@
 
 double mu_NP(arma::uword j,
              double t,
-             double a,
+             double s,
              double h1,
              double h2,
              const arma::vec& bj,
              const arma::mat& X,
              const arma::vec& Y,
              const arma::uvec& delPi,
-             const arma::vec& A,
+             const arma::vec& S,
              const arma::vec& Z);
 
 #endif

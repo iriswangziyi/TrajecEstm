@@ -4,7 +4,7 @@
 \alias{mu_hat}
 \title{\code{mu_hat}: baseline mean estimator \hat{\mu}(t,s) for any scenario}
 \usage{
-mu_hat(j, t, s, h, par, X, Y, deltaPi, A, Z, scenario)
+mu_hat(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario)
 }
 \arguments{
 \item{j}{integer {1,2}}
@@ -19,9 +19,9 @@ mu_hat(j, t, s, h, par, X, Y, deltaPi, A, Z, scenario)
 
 \item{deltaPi}{length-n integer vector with values in {1,2}}
 
-\item{A, Z}{length-n subject-level s and time vectors}
-
 \item{scenario}{numeric, like 1.1, 1.2, 2.1, 2.2}
+
+\item{A, Z}{length-n subject-level s and time vectors}
 }
 \description{
 \code{mu_hat}: baseline mean estimator \hat{\mu}(t,s) for any scenario

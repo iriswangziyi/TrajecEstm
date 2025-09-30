@@ -13,35 +13,35 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // PPL_sigmoid
-double PPL_sigmoid(arma::vec btj, arma::uword j, const arma::mat& X, const arma::vec& Y_A, const arma::vec& A, const arma::vec& Z, const arma::mat& Kmat, double h1, double tau0, double tau1);
-RcppExport SEXP _TrajecEstm_PPL_sigmoid(SEXP btjSEXP, SEXP jSEXP, SEXP XSEXP, SEXP Y_ASEXP, SEXP ASEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP h1SEXP, SEXP tau0SEXP, SEXP tau1SEXP) {
+double PPL_sigmoid(arma::vec btj, arma::uword j, const arma::mat& X, const arma::vec& Y, const arma::vec& S, const arma::vec& Z, const arma::mat& Kmat, double h1, double tau0, double tau1);
+RcppExport SEXP _TrajecEstm_PPL_sigmoid(SEXP btjSEXP, SEXP jSEXP, SEXP XSEXP, SEXP YSEXP, SEXP SSEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP h1SEXP, SEXP tau0SEXP, SEXP tau1SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type btj(btjSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type Y_A(Y_ASEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
     Rcpp::traits::input_parameter< double >::type h1(h1SEXP);
     Rcpp::traits::input_parameter< double >::type tau0(tau0SEXP);
     Rcpp::traits::input_parameter< double >::type tau1(tau1SEXP);
-    rcpp_result_gen = Rcpp::wrap(PPL_sigmoid(btj, j, X, Y_A, A, Z, Kmat, h1, tau0, tau1));
+    rcpp_result_gen = Rcpp::wrap(PPL_sigmoid(btj, j, X, Y, S, Z, Kmat, h1, tau0, tau1));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_beta_theta_lbfgs_V1
-arma::vec estimate_beta_theta_lbfgs_V1(arma::uword j, const arma::mat& X, const arma::vec& Y_A, const arma::vec& A, const arma::vec& Z, const arma::mat& Kmat, double tau0, double tau1, double sce, arma::vec init, double tol, std::size_t max_iter);
-RcppExport SEXP _TrajecEstm_estimate_beta_theta_lbfgs_V1(SEXP jSEXP, SEXP XSEXP, SEXP Y_ASEXP, SEXP ASEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP sceSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+arma::vec estimate_beta_theta_lbfgs_V1(arma::uword j, const arma::mat& X, const arma::vec& Y_S, const arma::vec& S, const arma::vec& Z, const arma::mat& Kmat, double tau0, double tau1, double sce, arma::vec init, double tol, std::size_t max_iter);
+RcppExport SEXP _TrajecEstm_estimate_beta_theta_lbfgs_V1(SEXP jSEXP, SEXP XSEXP, SEXP Y_SSEXP, SEXP SSEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP sceSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type Y_A(Y_ASEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y_S(Y_SSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
     Rcpp::traits::input_parameter< double >::type tau0(tau0SEXP);
@@ -50,20 +50,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type init(initSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_beta_theta_lbfgs_V1(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce, init, tol, max_iter));
+    rcpp_result_gen = Rcpp::wrap(estimate_beta_theta_lbfgs_V1(j, X, Y_S, S, Z, Kmat, tau0, tau1, sce, init, tol, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_beta_theta_lbfgs_V2
-arma::vec estimate_beta_theta_lbfgs_V2(arma::uword j, const arma::mat& X, const arma::vec& Y_A, const arma::vec& A, const arma::vec& Z, const arma::mat& Kmat, double tau0, double tau1, double sce, arma::vec init, double tol, std::size_t max_iter);
-RcppExport SEXP _TrajecEstm_estimate_beta_theta_lbfgs_V2(SEXP jSEXP, SEXP XSEXP, SEXP Y_ASEXP, SEXP ASEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP sceSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+arma::vec estimate_beta_theta_lbfgs_V2(arma::uword j, const arma::mat& X, const arma::vec& Y_S, const arma::vec& S, const arma::vec& Z, const arma::mat& Kmat, double tau0, double tau1, double sce, arma::vec init, double tol, std::size_t max_iter);
+RcppExport SEXP _TrajecEstm_estimate_beta_theta_lbfgs_V2(SEXP jSEXP, SEXP XSEXP, SEXP Y_SSEXP, SEXP SSEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP sceSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type Y_A(Y_ASEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y_S(Y_SSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
     Rcpp::traits::input_parameter< double >::type tau0(tau0SEXP);
@@ -72,20 +72,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type init(initSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_beta_theta_lbfgs_V2(j, X, Y_A, A, Z, Kmat, tau0, tau1, sce, init, tol, max_iter));
+    rcpp_result_gen = Rcpp::wrap(estimate_beta_theta_lbfgs_V2(j, X, Y_S, S, Z, Kmat, tau0, tau1, sce, init, tol, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_beta_NP
-arma::vec estimate_beta_NP(arma::uword j, const arma::mat& X, const arma::vec& Y_A, const arma::vec& A, const arma::vec& Z, const arma::mat& Kmat, double d, double tau0, double tau1, arma::vec init, double tol, std::size_t max_iter);
-RcppExport SEXP _TrajecEstm_estimate_beta_NP(SEXP jSEXP, SEXP XSEXP, SEXP Y_ASEXP, SEXP ASEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP dSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+arma::vec estimate_beta_NP(arma::uword j, const arma::mat& X, const arma::vec& Y_S, const arma::vec& S, const arma::vec& Z, const arma::mat& Kmat, double d, double tau0, double tau1, arma::vec init, double tol, std::size_t max_iter);
+RcppExport SEXP _TrajecEstm_estimate_beta_NP(SEXP jSEXP, SEXP XSEXP, SEXP Y_SSEXP, SEXP SSEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP dSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type Y_A(Y_ASEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y_S(Y_SSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
     Rcpp::traits::input_parameter< double >::type d(dSEXP);
@@ -94,49 +94,49 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type init(initSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_beta_NP(j, X, Y_A, A, Z, Kmat, d, tau0, tau1, init, tol, max_iter));
+    rcpp_result_gen = Rcpp::wrap(estimate_beta_NP(j, X, Y_S, S, Z, Kmat, d, tau0, tau1, init, tol, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }
 // mu_r
-double mu_r(arma::uword j, double t, double a, double h, const arma::vec& btj, const arma::mat& X, const arma::vec& Y, const arma::uvec& delPi, const arma::vec& A, const arma::vec& Z, double sce);
-RcppExport SEXP _TrajecEstm_mu_r(SEXP jSEXP, SEXP tSEXP, SEXP aSEXP, SEXP hSEXP, SEXP btjSEXP, SEXP XSEXP, SEXP YSEXP, SEXP delPiSEXP, SEXP ASEXP, SEXP ZSEXP, SEXP sceSEXP) {
+double mu_r(arma::uword j, double t, double s, double h, const arma::vec& btj, const arma::mat& X, const arma::vec& Y, const arma::uvec& delPi, const arma::vec& S, const arma::vec& Z, double sce);
+RcppExport SEXP _TrajecEstm_mu_r(SEXP jSEXP, SEXP tSEXP, SEXP sSEXP, SEXP hSEXP, SEXP btjSEXP, SEXP XSEXP, SEXP YSEXP, SEXP delPiSEXP, SEXP SSEXP, SEXP ZSEXP, SEXP sceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< double >::type t(tSEXP);
-    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type h(hSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type btj(btjSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type delPi(delPiSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< double >::type sce(sceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mu_r(j, t, a, h, btj, X, Y, delPi, A, Z, sce));
+    rcpp_result_gen = Rcpp::wrap(mu_r(j, t, s, h, btj, X, Y, delPi, S, Z, sce));
     return rcpp_result_gen;
 END_RCPP
 }
 // mu_NP
-double mu_NP(arma::uword j, double t, double a, double h1, double h2, const arma::vec& bj, const arma::mat& X, const arma::vec& Y, const arma::uvec& delPi, const arma::vec& A, const arma::vec& Z);
-RcppExport SEXP _TrajecEstm_mu_NP(SEXP jSEXP, SEXP tSEXP, SEXP aSEXP, SEXP h1SEXP, SEXP h2SEXP, SEXP bjSEXP, SEXP XSEXP, SEXP YSEXP, SEXP delPiSEXP, SEXP ASEXP, SEXP ZSEXP) {
+double mu_NP(arma::uword j, double t, double s, double h1, double h2, const arma::vec& bj, const arma::mat& X, const arma::vec& Y, const arma::uvec& delPi, const arma::vec& S, const arma::vec& Z);
+RcppExport SEXP _TrajecEstm_mu_NP(SEXP jSEXP, SEXP tSEXP, SEXP sSEXP, SEXP h1SEXP, SEXP h2SEXP, SEXP bjSEXP, SEXP XSEXP, SEXP YSEXP, SEXP delPiSEXP, SEXP SSEXP, SEXP ZSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::uword >::type j(jSEXP);
     Rcpp::traits::input_parameter< double >::type t(tSEXP);
-    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type h1(h1SEXP);
     Rcpp::traits::input_parameter< double >::type h2(h2SEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type bj(bjSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type delPi(delPiSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
-    rcpp_result_gen = Rcpp::wrap(mu_NP(j, t, a, h1, h2, bj, X, Y, delPi, A, Z));
+    rcpp_result_gen = Rcpp::wrap(mu_NP(j, t, s, h1, h2, bj, X, Y, delPi, S, Z));
     return rcpp_result_gen;
 END_RCPP
 }

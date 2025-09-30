@@ -9,13 +9,13 @@
 //--------------------------------------------------
 double mu_r(arma::uword j,
             double t,
-            double a,
+            double s,
             double h,
             const arma::vec& btj,
             const arma::mat& X,
             const arma::vec& Y,
             const arma::uvec& delPi,
-            const arma::vec& A,
+            const arma::vec& S,
             const arma::vec& Z,
             double sce);
 
