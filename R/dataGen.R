@@ -120,9 +120,11 @@ simData2 <- function(T0param = c(lambda = 0.1,
     threshold <- threshold0[ind == TRUE][1:N]
 
     ## residual censoring time after enrollment: C
-    C <- rexp(N, rate = 0.045)
+    C_old <- rexp(N, rate = 0.045)
+    #round to closest small even int
+    #C <- round(C_old, )
 
-    # WANT: censoring_rate = P(A+C<T) ~0.25
+    # WANT: censoring_rate = P(A+C<T) ~0.2
     #censoring_rate <- sum(A + C < T) / N #0.22
     #censoring_rate
 
@@ -143,6 +145,8 @@ simData2 <- function(T0param = c(lambda = 0.1,
 
     A_l <- rep(A, each = nv)
     Z_l <- rep(Z, each = nv)
+
+
     ## X1
     X1_l <- ifelse(V < rep(threshold, each = nv), 0, 1)
     X2_l <- rep(X2, each = nv)
@@ -172,23 +176,23 @@ simData2 <- function(T0param = c(lambda = 0.1,
     if (scenario == 1) {
         # Scenario 1.1: bell poly
         rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2, 1), sce = 1.1)
-        gs1 <- log(T_l + 2)
+        gs1 <- (1/2) * log(T_l + 2)
         mus1 <- rs1 * gs1
 
         # Scenario 1.2: general Poly
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, 2, -1.5), sce = 1.2)
-        gs2 <- sqrt(T_l + 1)
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.5, -1, 0.5), sce = 1.2)
+        gs2 <- (1/3) * sqrt(T_l + 1)
         mus2 <- rs2 * gs2
 
     }else{
         ## Scenario 2.1:Sigmoid
         rs1 <- compute_r_vec(s = S, t = T_l, theta = 2, sce = 2.1)
-        gs1 <- 1
+        gs1 <- 5
         mus1 <- rs1 * gs1
 
         # Scenario 2.2: skewed poly
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -2), sce = 2.2)
-        gs2 <- 1 + 0.05 * T_l
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -1), sce = 2.2)
+        gs2 <- 1.5 + 0.05 * T_l
         mus2 <- rs2 * gs2
     }
 

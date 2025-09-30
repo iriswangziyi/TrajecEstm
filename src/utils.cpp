@@ -164,13 +164,13 @@ double compute_r_scalar(double s,
         //Poly2:log r = theta1 · s* + theta2 · (s*)^2
         r = std::exp(theta(0) * (s/tau) + theta(1) * (s/tau) *(s/tau));
 
-    } else if (sce == 1.1) {
+    } else if (sce == 1.2) {
         // Bell:
         //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         double diff = (s/tau) - 0.5 * (t/tau);
         r = std::exp(-theta(0) * diff * diff + theta(1) * (s/tau));
 
-    } else if (sce == 1.2) {
+    } else if (sce == 1.1) {
         // General poly with interaction:
         //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = std::exp(theta(0) * (s/tau) * (s/tau) + theta(1) * (s/tau)
@@ -224,13 +224,13 @@ arma::vec compute_r_vec(arma::vec s,
         //log r = theta1 · s* + theta2 · (s*)^2
         r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
 
-    } else if (sce == 1.1) {
+    } else if (sce == 1.2) {
         // Bell:
         //log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
 
-    } else if (sce == 1.2) {
+    } else if (sce == 1.1) {
         // General poly with interaction:
         //log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
@@ -270,12 +270,12 @@ arma::vec compute_r_vec(arma::vec s,
  dr/dtheta1 = r · s*
  dr/dtheta2 = r · (s*)^2
 
- 1.1 (Bell / bump with shift):
+ 1.2 (Bell / bump with shift):
  log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
  dr/dtheta1 = r · (− diff^2)
  dr/dtheta2 = r · s*
 
- 1.2 (General polynomial with s–t interaction):
+ 1.1 (General polynomial with s–t interaction):
  log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
  dr/dtheta1 = r · (s*)^2
  dr/dtheta2 = r · s*
@@ -303,7 +303,7 @@ Rcpp::List compute_r_dr(arma::vec s,
         dr.col(0) = r % (s/tau);
         dr.col(1) = r % (s/tau) % (s/tau);
 
-    } else if (sce == 1.1) {
+    } else if (sce == 1.2) {
         // Bell:
         //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
         arma::vec diff =(s/tau) - 0.5 * (t/tau);
@@ -311,7 +311,7 @@ Rcpp::List compute_r_dr(arma::vec s,
         dr.col(0) = -r % diff % diff;
         dr.col(1) = r % (s/tau);
 
-    } else if (sce == 1.2) {
+    } else if (sce == 1.1) {
         // General poly with interaction:
         //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
         r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
