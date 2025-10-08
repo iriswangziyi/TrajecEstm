@@ -97,12 +97,12 @@ simData2 <- function(T0param = c(lambda = 0.1,
 
     ## Generate truncation time: A0
     # 7.18 used to be 3.3, truncation_prob = 0.2
-    # now changed to 10, truncation_prob = 0.486
+    # now changed to 10, truncation_prob = 0.4899236
     A0 <- runif(N0, 0, 10)
 
-    # WANT: truncation_prob = P(T0<A0) ~0.25, sum(T0<=A0)/N0~0.25
-    #truncation_prob = sum(T0 <= A0) / N0 # 0.2
-    #truncation_prob
+    # WANT: truncation_prob = P(T0<A0), sum(T0<=A0)/N0~0.25
+    truncation_prob = sum(T0 <= A0) / N0 #0.4899236
+    truncation_prob
 
     pop <- data.frame(A0 = A0, T0 = T0, Pi0 = Pi0, X1 = 0, X2 = X2_0)
 
@@ -120,12 +120,14 @@ simData2 <- function(T0param = c(lambda = 0.1,
     threshold <- threshold0[ind == TRUE][1:N]
 
     ## residual censoring time after enrollment: C
-    C_old <- rexp(N, rate = 0.045)
+    C_old <- rexp(N, rate = 0.04)
+
+    #9.30
     #round to closest small even int
-    #C <- round(C_old, )
+    C <- round(C_old) + (round(C_old) %%2) * (-1)
 
     # WANT: censoring_rate = P(A+C<T) ~0.2
-    #censoring_rate <- sum(A + C < T) / N #0.22
+    #censoring_rate <- sum(A + C < T) / N #0.219027
     #censoring_rate
 
     ## Generating Z: observed censored event time
@@ -137,7 +139,7 @@ simData2 <- function(T0param = c(lambda = 0.1,
     Delta <- ifelse(T <= A + C, 1, 0)
 
     ## Generating V: follow-up visits
-    # V0 = 0, V1 = 1, V2 = 2, ...,V5 = 5
+    # V0 = 0, V1 = 2, V2 = 4, ...
     # keep V <= Z-A
     V <- rep(seq(0, 20, 2), N)
     nv <- length(V)/N
@@ -174,14 +176,14 @@ simData2 <- function(T0param = c(lambda = 0.1,
 
     # Compute marker trajectory mu_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
     if (scenario == 1) {
-        # Scenario 1.1: bell poly
-        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(2, 1), sce = 1.1)
-        gs1 <- (1/2) * log(T_l + 2)
+        # Scenario 1.1: general Poly
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(0.5, -1, 0.5), sce = 1.1)
+        gs1 <- (1/3) * sqrt(T_l + 1)
         mus1 <- rs1 * gs1
 
-        # Scenario 1.2: general Poly
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.5, -1, 0.5), sce = 1.2)
-        gs2 <- (1/3) * sqrt(T_l + 1)
+        # Scenario 1.2: bell poly
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(2, 1), sce = 1.2)
+        gs2 <- (1/2) * log(T_l + 2)
         mus2 <- rs2 * gs2
 
     }else{

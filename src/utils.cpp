@@ -3,6 +3,8 @@
 
 #include <RcppArmadillo.h>
 #include <RcppEnsmallen.h>
+#include <algorithm>   // std::max, std::min
+#include <cmath>       // std::fabs
 #include "utils.h"
 
 // --------------------
@@ -423,3 +425,415 @@ double rfun2(double a,
 
 
 }
+
+//10-08
+
+// --- helpers (explicit std/arma) --------------------------------------------
+static inline arma::vec clamp_vec(const arma::vec& x, double lo, double hi) {
+    arma::vec y = x;
+    y.transform([&](double v){ return std::max(lo, std::min(hi, v)); });
+    return y;
+}
+static inline bool sce_is(double sce, double target) {
+    return std::fabs(sce - target) < 1e-9;
+}
+static inline double med(const arma::vec& v) {
+    if (v.n_elem == 0) return 0.0;
+    return arma::median(v);
+}
+
+/*
+ compute_r_vec: elementwise r(s_i, t_i; theta, sce) for vectors s and t.
+
+ Scaling: s* = s/τ, t* = t/τ, Δ* = (t - s)/τ with τ = 20.
+ Centering (3.X only): s̃ = s* - m_s, t̃ = t* - m_t, Δ̃ = Δ* - m_Δ (medians on scaled axes).
+ For log-scale models we clamp η = log r to [-20, 20] before exp().
+
+ Scenarios (legacy kept):
+ 2.1 Sigmoid:         r = 1 / (1 + exp( -θ1 (s* − 0.5 t*) ))
+ 2.2 s-only poly:     log r = θ1 s* + θ2 (s*)^2
+ 1.2 Bell:            log r = −θ1 (s* − 0.5 t*)^2 + θ2 s*
+ 1.1 General poly:    log r = θ1 (s*)^2 + θ2 s* + θ3 s* t*
+
+ New centered family:
+ 3.1 s-only poly:     log r = θ1 s̃ + θ2 s̃^2
+ 3.2 curvature in s:  log r = θ1 s̃^2
+ 3.3 Δ poly:          log r = θ1 Δ̃ + θ2 Δ̃^2
+ 3.4 s × Δ:           log r = θ1 s̃ + θ2 Δ̃ + θ3 s̃ Δ̃
+ 3.5 bump near onset: log r = θ1 − θ2 Δ̃^2 + θ3 s̃
+ 3.6 s × t:           log r = θ1 s̃ + θ2 t̃ + θ3 s̃ t̃
+ */
+// [[Rcpp::export]]
+arma::vec compute_r_vec2(const arma::vec& s,
+                        const arma::vec& t,
+                        const arma::vec& theta,
+                        double sce)
+{
+    if (s.n_elem != t.n_elem) Rcpp::stop("s and t must have same length");
+
+    const double tau = 20.0;
+
+    // scaled axes
+    arma::vec sp = s / tau;             // s*
+    arma::vec tp = t / tau;             // t*
+    arma::vec dp = (t - s) / tau;       // Δ*
+
+    // centers (medians on scaled axes)
+    const double ms = med(sp);
+    const double mt = med(tp);
+    const double md = med(dp);
+
+    // centered axes
+    arma::vec st = sp - ms;             // s̃
+    arma::vec tt = tp - mt;             // t̃
+    arma::vec dt = dp - md;             // Δ̃
+
+    arma::vec r(s.n_elem, arma::fill::zeros);
+
+    // ---- legacy (uncentered) -------------------------------------------------
+    if (sce_is(sce, 2.1)) {
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 2.1");
+        r = 1.0 / (1.0 + arma::exp(-theta(0) * (sp - 0.5 * tp)));
+
+    } else if (sce_is(sce, 2.2)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 2.2");
+        arma::vec eta = theta(0) * sp + theta(1) * (sp % sp);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 1.2)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 1.2");
+        arma::vec diff = sp - 0.5 * tp;
+        arma::vec eta  = -theta(0) * (diff % diff) + theta(1) * sp;
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 1.1)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 1.1");
+        arma::vec eta = theta(0) * (sp % sp) + theta(1) * sp + theta(2) * (sp % tp);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+        // ---- new centered 3.X family --------------------------------------------
+    } else if (sce_is(sce, 3.1)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.1");
+        arma::vec eta = theta(0) * st + theta(1) * (st % st);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.2)) {
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 3.2");
+        arma::vec eta = theta(0) * (st % st);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.3)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.3");
+        arma::vec eta = theta(0) * dt + theta(1) * (dt % dt);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.4)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.4");
+        arma::vec eta = theta(0) * st + theta(1) * dt + theta(2) * (st % dt);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.5)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.5");
+        arma::vec eta = theta(0) - theta(1) * (dt % dt) + theta(2) * st; // expect theta(1) > 0
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.6)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.6");
+        arma::vec eta = theta(0) * st + theta(1) * tt + theta(2) * (st % tt);
+        r = arma::exp(clamp_vec(eta, -20.0, 20.0));
+
+    } else {
+        Rcpp::stop("Unsupported sce value in compute_r_vec()");
+    }
+
+    return r;
+}
+
+// ---- add this tiny scalar helper ONCE (used by compute_r_scalar) ----
+static inline double clamp_double(double v, double lo, double hi) {
+    return std::max(lo, std::min(hi, v));
+}
+
+// Optional: fixed centers for scalar evaluation (debug/predict path)
+static constexpr double MS0 = 0.5;   // m_s on scaled axis
+static constexpr double MT0 = 0.5;   // m_t on scaled axis
+static constexpr double MD0 = 0.25;  // m_Δ on scaled axis
+
+// ===================================================================
+// [[Rcpp::export]]
+double compute_r_scalar2(double s,
+                        double t,
+                        const arma::vec& theta,
+                        double sce)
+{
+    const double tau = 20.0;
+
+    // scaled axes
+    const double sp = s / tau;          // s*
+    const double tp = t / tau;          // t*
+    const double dp = (t - s) / tau;    // Δ*
+
+    // centered (fixed reference for scalar variant)
+    const double st = sp - MS0;         // s̃
+    const double tt = tp - MT0;         // t̃
+    const double dt = dp - MD0;         // Δ̃
+
+    double r = 0.0;
+
+    // ---- legacy (uncentered) ---------------------------------------
+    if (sce_is(sce, 2.1)) {
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 2.1");
+        const double z = sp - 0.5 * tp;
+        r = 1.0 / (1.0 + std::exp(-theta(0) * z));
+
+    } else if (sce_is(sce, 2.2)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 2.2");
+        double eta = theta(0) * sp + theta(1) * (sp * sp);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 1.2)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 1.2");
+        const double diff = sp - 0.5 * tp;
+        double eta = -theta(0) * (diff * diff) + theta(1) * sp;
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 1.1)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 1.1");
+        double eta = theta(0) * (sp * sp) + theta(1) * sp + theta(2) * (sp * tp);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+        // ---- centered 3.X family ---------------------------------------
+    } else if (sce_is(sce, 3.1)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.1");
+        double eta = theta(0) * st + theta(1) * (st * st);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.2)) {
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 3.2");
+        double eta = theta(0) * (st * st);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.3)) {
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.3");
+        double eta = theta(0) * dt + theta(1) * (dt * dt);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.4)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.4");
+        double eta = theta(0) * st + theta(1) * dt + theta(2) * (st * dt);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.5)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.5");
+        double eta = theta(0) - theta(1) * (dt * dt) + theta(2) * st; // expect theta(1) > 0
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else if (sce_is(sce, 3.6)) {
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.6");
+        double eta = theta(0) * st + theta(1) * tt + theta(2) * (st * tt);
+        r = std::exp(clamp_double(eta, -20.0, 20.0));
+
+    } else {
+        Rcpp::stop("Unsupported sce value in compute_r_scalar()");
+    }
+
+    return r;
+}
+
+
+
+/*
+ compute_r_dr: vectorized r(s_i, t_i; theta, sce) and its gradient wrt theta.
+
+ Inputs:
+ s, t   : length-n vectors (paired)
+ theta  : parameter vector (length depends on scenario)
+ sce    : scenario code {1.1, 1.2, 2.1, 2.2, 3.1–3.6}
+
+ Scaling:
+ s* = s/τ, t* = t/τ, Δ* = (t - s)/τ  with τ = 20.
+ Centering (3.X only):
+ s̃ = s* - median(s*),  t̃ = t* - median(t*),  Δ̃ = Δ* - median(Δ*).
+
+ Output (R list):
+ r  : arma::vec (n)
+ dr : arma::mat (n × p), column k is ∂r/∂θ_k
+
+ Notes on clamping:
+ For log-scale models we compute η (unclamped), then r = exp( clamp(η, -20, 20) ).
+ The gradient is r * ∂η/∂θ on rows where η ∈ (-20, 20), and 0 on rows that clip.
+ */
+// (helpers clamp_vec, sce_is, med are assumed to be defined ONCE above)
+
+
+// [[Rcpp::export]]
+Rcpp::List compute_r_dr2(const arma::vec& s,
+                        const arma::vec& t,
+                        const arma::vec& theta,
+                        double sce)
+{
+    if (s.n_elem != t.n_elem) Rcpp::stop("s and t must have same length");
+
+    const arma::uword n = s.n_elem;
+    const double tau = 20.0;
+
+    // scaled axes
+    arma::vec sp = s / tau;            // s*
+    arma::vec tp = t / tau;            // t*
+    arma::vec dp = (t - s) / tau;      // Δ*
+
+    // centers (medians on scaled axes)
+    const double ms = med(sp);
+    const double mt = med(tp);
+    const double md = med(dp);
+
+    // centered axes
+    arma::vec st = sp - ms;            // s̃
+    arma::vec tt = tp - mt;            // t̃
+    arma::vec dt = dp - md;            // Δ̃
+
+    arma::vec r(n, arma::fill::zeros);
+    arma::mat dr(n, theta.n_elem, arma::fill::zeros);
+
+    // ---------------- legacy (uncentered) --------------------------------------
+    if (sce_is(sce, 2.1)) {
+        // Sigmoid: r = 1 / (1 + exp(-θ1 * u)), with u = s* - 0.5 t*
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 2.1");
+        arma::vec u = sp - 0.5 * tp;
+        r = 1.0 / (1.0 + arma::exp(-theta(0) * u));
+        dr.col(0) = r % (1.0 - r) % u;
+
+    } else if (sce_is(sce, 2.2)) {
+        // log r = θ1 s* + θ2 (s*)^2
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 2.2");
+        arma::vec eta = theta(0) * sp + theta(1) * (sp % sp);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        // active rows where clamp is inactive
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r;                // w = r on active rows; 0 otherwise
+        w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % sp;
+        dr.col(1) = w % (sp % sp);
+
+    } else if (sce_is(sce, 1.2)) {
+        // log r = -θ1 (s* - 0.5 t*)^2 + θ2 s*
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 1.2");
+        arma::vec diff = sp - 0.5 * tp;
+        arma::vec eta  = -theta(0) * (diff % diff) + theta(1) * sp;
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % (-diff % diff);
+        dr.col(1) = w % sp;
+
+    } else if (sce_is(sce, 1.1)) {
+        // log r = θ1 (s*)^2 + θ2 s* + θ3 s* t*
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 1.1");
+        arma::vec eta = theta(0) * (sp % sp) + theta(1) * sp + theta(2) * (sp % tp);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % (sp % sp);
+        dr.col(1) = w % sp;
+        dr.col(2) = w % (sp % tp);
+
+        // ---------------- centered 3.X family --------------------------------------
+    } else if (sce_is(sce, 3.1)) {
+        // log r = θ1 s̃ + θ2 s̃^2
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.1");
+        arma::vec eta = theta(0) * st + theta(1) * (st % st);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % st;
+        dr.col(1) = w % (st % st);
+
+    } else if (sce_is(sce, 3.2)) {
+        // log r = θ1 s̃^2
+        if (theta.n_elem != 1u) Rcpp::stop("theta length must be 1 for sce 3.2");
+        arma::vec eta = theta(0) * (st % st);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % (st % st);
+
+    } else if (sce_is(sce, 3.3)) {
+        // log r = θ1 Δ̃ + θ2 Δ̃^2
+        if (theta.n_elem != 2u) Rcpp::stop("theta length must be 2 for sce 3.3");
+        arma::vec eta = theta(0) * dt + theta(1) * (dt % dt);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % dt;
+        dr.col(1) = w % (dt % dt);
+
+    } else if (sce_is(sce, 3.4)) {
+        // log r = θ1 s̃ + θ2 Δ̃ + θ3 s̃Δ̃
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.4");
+        arma::vec eta = theta(0) * st + theta(1) * dt + theta(2) * (st % dt);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % st;
+        dr.col(1) = w % dt;
+        dr.col(2) = w % (st % dt);
+
+    } else if (sce_is(sce, 3.5)) {
+        // log r = θ1 − θ2 Δ̃^2 + θ3 s̃   (expect θ2 > 0)
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.5");
+        arma::vec eta = theta(0) - theta(1) * (dt % dt) + theta(2) * st;
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w;                      // ∂η/∂θ1 = 1
+        dr.col(1) = w % (-(dt % dt));       // ∂η/∂θ2 = -Δ̃^2
+        dr.col(2) = w % st;                 // ∂η/∂θ3 = s̃
+
+    } else if (sce_is(sce, 3.6)) {
+        // log r = θ1 s̃ + θ2 t̃ + θ3 s̃ t̃
+        if (theta.n_elem != 3u) Rcpp::stop("theta length must be 3 for sce 3.6");
+        arma::vec eta = theta(0) * st + theta(1) * tt + theta(2) * (st % tt);
+        arma::vec eta_c = clamp_vec(eta, -20.0, 20.0);
+        r = arma::exp(eta_c);
+
+        arma::uvec active_u = (eta > -20.0) % (eta < 20.0);
+        arma::vec  w = r; w.elem(arma::find(active_u == 0)).zeros();
+
+        dr.col(0) = w % st;
+        dr.col(1) = w % tt;
+        dr.col(2) = w % (st % tt);
+
+    } else {
+        Rcpp::stop("Unsupported sce value in compute_r_dr()");
+    }
+
+    return Rcpp::List::create(
+        Rcpp::Named("r")  = r,
+        Rcpp::Named("dr") = dr
+    );
+}
+
