@@ -25,6 +25,10 @@ mu_NP <- function(j, t, s, h1, h2, bj, X, Y, delPi, S, Z) {
     .Call(`_TrajecEstm_mu_NP`, j, t, s, h1, h2, bj, X, Y, delPi, S, Z)
 }
 
+estimate_beta_survivor_lbfgs <- function(X, Y, A, Z, Kmat, tau0, tau, init, tol = 1e-8, max_iter = 1000L) {
+    .Call(`_TrajecEstm_estimate_beta_survivor_lbfgs`, X, Y, A, Z, Kmat, tau0, tau, init, tol, max_iter)
+}
+
 matK_tri4 <- function(Z, h) {
     .Call(`_TrajecEstm_matK_tri4`, Z, h)
 }

@@ -2,6 +2,7 @@
 
 export(estimate_NP)
 export(estimate_ensmallen_grad)
+export(estimate_survivor_grad)
 export(muNP_hat)
 export(mu_hat)
 export(simData2)

@@ -15,10 +15,6 @@ Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec theta,
                         double sce);
 
-Rcpp::List compute_r_dr2(const arma::vec& s,
-                         const arma::vec& t,
-                         const arma::vec& theta,
-                         double sce);
 
 // Compute only r as a vector
 arma::vec compute_r_vec(arma::vec s,
@@ -26,21 +22,12 @@ arma::vec compute_r_vec(arma::vec s,
                         arma::vec theta,
                         double sce);
 
-arma::vec compute_r_vec2(const arma::vec& s,
-                        const arma::vec& t,
-                        const arma::vec& theta,
-                        double sce);
 
 // Compute only r for a single (a, z) pair
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
                         double sce);
-
-double compute_r_scalar2(double s,
-                         double t,
-                         const arma::vec& theta,
-                         double sce);
 
 
 // Gradient function

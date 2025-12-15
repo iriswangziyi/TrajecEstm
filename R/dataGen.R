@@ -37,9 +37,10 @@
 #'
 #' @export
 
-simData2 <- function(T0param = c(lambda = 0.1,
+simData2 <- function(T0param = c(lambda = exp(-4),
                                  beta_X1 = 0.5,
-                                 beta_X2 = 0.3),
+                                 beta_X2 = 0.5,
+                                 nu = 2),
                      beta0 = c(beta11 = 1,
                                beta12 = -1,
                                beta21 = 1,
@@ -47,6 +48,9 @@ simData2 <- function(T0param = c(lambda = 0.1,
                      N = 500,
                      scenario = 2)
 {
+
+    ##tau for surv model
+    tau = 20
 
     ## underlying population
     N0 <- 5*N
@@ -58,21 +62,34 @@ simData2 <- function(T0param = c(lambda = 0.1,
     X2_0 <- runif(N0, 0, 1)
 
     ## Generate T0
-    # Ref: Austin 2021, 3.1.1 Exponential dist. of event time
-    # T0param = (lambda, beta_X1, beta_X2)
+    # Ref: Austin 2021, 3.1.2 Weibull dist. of event time
+    # T0param = (lambda, beta_X1, beta_X2, nu)
     # lambda: baseline event rate (hazard), higher lambda, events happen sooner
     # beta_X1: regression coeff. asso. w/ X1_0
     # beta_X2: regression coeff. asso. w/ X2_0
+    # nu: shape param (lambda is scale param)
 
-    #T0param <- c(0.1, 0.5, 0.3) #e.g1
-    #T0param <- c(0.5, 0.1, 0.5) #e.g2
+    #T0param <- c(0.1, 0.5, 0.3, 2) #e.g
 
     lambda <- T0param[1]
     beta_X1 <- T0param[2]
     beta_X2 <- T0param[3]
-    #u ~ unif(0,1)
+    nu <- T0param[4]
     u <- runif(N0, 0, 1)
+
+    #Weibull
     T0 <- ifelse(
+        -log(u) < lambda * exp(beta_X2 * X2_0) * (threshold0^nu),
+        (-log(u)) / (lambda * exp(beta_X2 * X2_0))^(1/nu),
+        (-log(u)
+         - lambda * exp(beta_X2 * X2_0) * (threshold0 ^(1/nu))
+         + lambda * exp(beta_X2 * X2_0 + beta_X1) * (threshold0 ^(1/nu))) /
+            (lambda * exp(beta_X2 * X2_0 + beta_X1))^(1/nu)
+    )
+    hist(T0, main="T0 Weibull, N=10000, N0 = 5N")
+
+    #T0_old is Exponential Event times
+    T0_old <- ifelse(
         -log(u) < lambda * exp(beta_X2 * X2_0) * threshold0,
         (-log(u)) / (lambda * exp(beta_X2 * X2_0)),
         (-log(u)
@@ -80,7 +97,6 @@ simData2 <- function(T0param = c(lambda = 0.1,
          + lambda * exp(beta_X2 * X2_0 + beta_X1) * threshold0) /
             (lambda * exp(beta_X2 * X2_0 + beta_X1))
     )
-    #hist(T0)
 
     ## Generate Pi0 - cause
     Pi0 <- rbinom(N0, size = 1, prob = 0.5) + 1  # Generates 1 or 2
@@ -186,8 +202,11 @@ simData2 <- function(T0param = c(lambda = 0.1,
         gs2 <- (1/2) * log(T_l + 2)
         mus2 <- rs2 * gs2
 
+        #for long term surv
+        mus0 <- rep(1, length(S))
+
     }else{
-        ## Scenario 2.1:Sigmoid
+        # Scenario 2.1:Sigmoid
         rs1 <- compute_r_vec(s = S, t = T_l, theta = 2, sce = 2.1)
         gs1 <- 5
         mus1 <- rs1 * gs1
@@ -196,6 +215,9 @@ simData2 <- function(T0param = c(lambda = 0.1,
         rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -1), sce = 2.2)
         gs2 <- 1.5 + 0.05 * T_l
         mus2 <- rs2 * gs2
+
+        #for long term surv, a function of S
+        mus0 <- rep(1, length(S))
     }
 
     ## Extracting true values for beta parameters
@@ -206,25 +228,32 @@ simData2 <- function(T0param = c(lambda = 0.1,
     beta21 <- beta0[3]
     beta22 <- beta0[4]
 
+
+    # Preallocate Y for all rows
+    Y <- numeric(length(S))  # same length as S, T_l, Pi, y_err, mus*
+
+    # Define indices for each type
+    #type1: df_l$Pi == 1 & df_l$T_l < tau
+    #type2: df_l$Pi == 2 & df_l$T_l < tau
+    #type3: df_l$T_l > tau, we use=> mus0
+
+    idx1 <- df_l$Pi == 1 & df_l$T_l < tau       # type 1: cause 1 before tau
+    idx2 <- df_l$Pi == 2 & df_l$T_l < tau       # type 2: cause 2 before tau
+    idx3 <- df_l$T_l >= tau                     # type 3: long-term survivors
+
     # Compute Y(s) for each cause
     # Y <- y_err*muj*exp(X1*beta1j + X2*beta2j)
-    Y1 <- y_err*mus1*exp(X1_l*beta11 + X2_l*beta12) # Cause 1
-    Y2 <- y_err*mus2*exp(X1_l*beta21 + X2_l*beta22) # Cause 2
+    Y[idx1] <- y_err[idx1] * mus1[idx1] *
+        exp(X1_l[idx1] * beta11 + X2_l[idx1] * beta12)
 
-    ## Filtering: Keep only valid observations where S ≤ Z_l
-    ind2 <- S <= Z_l
+    Y[idx2] <- y_err[idx2] * mus2[idx2] *
+        exp(X1_l[idx2] * beta21 + X2_l[idx2] * beta22)
 
-    df2 <- data.frame(id = id, T = T_l,
-                      A = A_l, S = S, Z = Z_l,
-                      Pi = Pi_l, delta = delta_l, delPi = delPi_l,
-                      Y1 = Y1, Y2 = Y2, X1 = X1_l, X2 = X2_l, V = V)
+    Y[idx3] <- y_err[idx3] * mus0[idx3] *
+        exp(X1_l[idx3] * beta21 + X2_l[idx3] * beta22)  # your chosen betas for surv
 
-    # only keep S=A+V<=Z (ind2=TRUE)
-    df_l <- df2[ind2 == TRUE,]
-    # Y=Y1 if cause1, Y=Y2 if cause2
-    df_l$Y <- ifelse(df_l$Pi == 1, df_l$Y1, df_l$Y2)
-    df_l$Y1 <- NULL
-    df_l$Y2 <- NULL
+    # Attach once at the end
+    df_l$Y <- Y
 
     df_l
 

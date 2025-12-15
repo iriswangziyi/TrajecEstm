@@ -140,6 +140,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// estimate_beta_survivor_lbfgs
+arma::vec estimate_beta_survivor_lbfgs(const arma::mat& X, const arma::vec& Y, const arma::vec& A, const arma::vec& Z, const arma::mat& Kmat, double tau0, double tau, arma::vec init, double tol, std::size_t max_iter);
+RcppExport SEXP _TrajecEstm_estimate_beta_survivor_lbfgs(SEXP XSEXP, SEXP YSEXP, SEXP ASEXP, SEXP ZSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tauSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
+    Rcpp::traits::input_parameter< double >::type tau0(tau0SEXP);
+    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type init(initSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< std::size_t >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_beta_survivor_lbfgs(X, Y, A, Z, Kmat, tau0, tau, init, tol, max_iter));
+    return rcpp_result_gen;
+END_RCPP
+}
 // matK_tri4
 arma::mat matK_tri4(const arma::vec& Z, double h);
 RcppExport SEXP _TrajecEstm_matK_tri4(SEXP ZSEXP, SEXP hSEXP) {
@@ -298,6 +318,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TrajecEstm_estimate_beta_NP", (DL_FUNC) &_TrajecEstm_estimate_beta_NP, 12},
     {"_TrajecEstm_mu_r", (DL_FUNC) &_TrajecEstm_mu_r, 11},
     {"_TrajecEstm_mu_NP", (DL_FUNC) &_TrajecEstm_mu_NP, 11},
+    {"_TrajecEstm_estimate_beta_survivor_lbfgs", (DL_FUNC) &_TrajecEstm_estimate_beta_survivor_lbfgs, 10},
     {"_TrajecEstm_matK_tri4", (DL_FUNC) &_TrajecEstm_matK_tri4, 2},
     {"_TrajecEstm_matK_tri4_loop", (DL_FUNC) &_TrajecEstm_matK_tri4_loop, 3},
     {"_TrajecEstm_matK", (DL_FUNC) &_TrajecEstm_matK, 2},
