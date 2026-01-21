@@ -1,11 +1,11 @@
 #' \code{mu_hat}: baseline mean estimator \hat{\mu}(t,s) for any scenario
 #' @param j        integer {1,2}
-#' @param t,s      evaluation time t and landmark s (same length if vectors)
+#' @param t,s      evaluation time t and landmark s (scalars; vectorize via mapply)
 #' @param h        bandwidth
 #' @param par      numeric vector: c(beta_j, theta_j)
 #' @param X,Y      design matrix (p x n) and response (n)
 #' @param deltaPi  length-n integer vector with values in {1,2}
-#' @param A,Z      length-n subject-level s and time vectors
+#' @param S,Z      length-n visit time and event/censoring time vectors
 #' @param scenario numeric, like 1.1, 1.2, 2.1, 2.2
 #' @export
 mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario) {
@@ -13,3 +13,18 @@ mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario) {
          X = X, Y = Y, delPi = deltaPi, S = S, Z = Z, sce = scenario)
 }
 
+#' \code{mu_hat_fast}: same as \code{mu_hat} but filters deltaPi==j in R for speed
+#' @inheritParams mu_hat
+#' @export
+mu_hat_fast <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario) {
+    keep <- (deltaPi == j)
+    mu_r_core(
+        t = t, s = s, h = h,
+        btj = par,
+        X = X[, keep, drop = FALSE],
+        Y = Y[keep],
+        S = S[keep],
+        Z = Z[keep],
+        sce = scenario
+    )
+}

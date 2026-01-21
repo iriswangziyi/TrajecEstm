@@ -12,7 +12,6 @@ struct SurvivorObjective {
     const arma::mat& X;      // p × n (columns = subjects)
     const arma::vec& Y;      // n × 1, marker at baseline Y_i(A_i)
     const arma::vec& A;      // n × 1, baseline time A_i
-    const arma::vec& Z;      // n × 1, event / censoring time Z_i
     const arma::mat& Kmat;   // n × n, K_h(A_i - A_k)
     const double tau0;       // lower bound for baseline time
     const double tau;        // τ (long-term survivor time threshold)
@@ -20,11 +19,10 @@ struct SurvivorObjective {
     SurvivorObjective(const arma::mat&  X_,
                       const arma::vec&  Y_,
                       const arma::vec&  A_,
-                      const arma::vec&  Z_,
                       const arma::mat&  Kmat_,
                       double tau0_,
                       double tau_)
-        : X(X_), Y(Y_), A(A_), Z(Z_), Kmat(Kmat_),
+        : X(X_), Y(Y_), A(A_), Kmat(Kmat_),
           tau0(tau0_), tau(tau_) {}
 
     // Evaluate −logL and its gradient in one pass
@@ -44,6 +42,7 @@ struct SurvivorObjective {
         // Indicators:
         //  - subject is event-free at τ (took this to the wrapper)
         //  - baseline time A in [tau0, tau]
+        //TODO: change A to S (measurement time) in notation
         //arma::vec atRiskZ = arma::conv_to<arma::vec>::from(Z >= tau);      // 0/1
         arma::vec inBandA = arma::conv_to<arma::vec>::from((A >= tau0) % (A <= tau));
 
@@ -100,7 +99,6 @@ struct SurvivorObjective {
 arma::vec estimate_beta_survivor_lbfgs(const arma::mat& X,
                                        const arma::vec& Y,
                                        const arma::vec& A,
-                                       const arma::vec& Z,
                                        const arma::mat& Kmat,
                                        double           tau0,
                                        double           tau,
@@ -108,7 +106,7 @@ arma::vec estimate_beta_survivor_lbfgs(const arma::mat& X,
                                        double           tol      = 1e-8,
                                        std::size_t      max_iter = 1000)
 {
-    SurvivorObjective fn(X, Y, A, Z, Kmat, tau0, tau);
+    SurvivorObjective fn(X, Y, A, Kmat, tau0, tau);
 
     ens::L_BFGS opt;
     opt.MaxIterations()   = max_iter;

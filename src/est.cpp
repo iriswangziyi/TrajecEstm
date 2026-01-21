@@ -208,7 +208,7 @@ struct PPLObjective_V2 {
     // Evaluate −logPPL and its gradient in one pass
     // --------------------------------------------------
 
-    //NEW USE THIS written by Fei
+    //NEW: USE THIS written by Fei
     double EvaluateWithGradient(const arma::mat& btj,
                                 arma::mat& grad) {
         //const arma::uword n = S.n_elem;

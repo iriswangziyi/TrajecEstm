@@ -21,7 +21,7 @@
  X (p×n) : design matrix (rows covariates, cols subjects)
  Y (n)   : response
  delPi   : del_i in {1,2}, length n
- A, Z    : subject-level s_i and time Z_i (length n)
+ S, Z    : subject-level s_i and time Z_i (length n)
  sce     : scenario code (1.1, 1.2, 2.1, 2.2)
 
  Returns:
@@ -73,6 +73,45 @@ double mu_r(arma::uword j,
     // small numerical guard
     const double eps = 1e-12;
     if (den <= eps) return NA_REAL; // or 0.0 if prefer silent zero
+
+    return (num / den) * r_star;
+}
+
+// [[Rcpp::export]]
+double mu_r_core(double t,
+                 double s,
+                 double h,
+                 const arma::vec& btj,
+                 const arma::mat& X,
+                 const arma::vec& Y,
+                 const arma::vec& S,
+                 const arma::vec& Z,
+                 double sce)
+{
+    const int n = S.n_elem;
+    const int p = X.n_rows;
+
+    arma::vec bj    = btj.subvec(0, p - 1);
+    arma::vec theta = btj.subvec(p, btj.n_elem - 1);
+
+    arma::vec xbj = X.t() * bj;
+    arma::vec r   = compute_r_vec(S, Z, theta, sce);
+
+    double num = 0.0, den = 0.0;
+    if (t < h) t = h;
+
+    for (int i = 0; i < n; ++i) {
+        double u = (t - Z(i)) / h;
+        if (std::abs(u) < 1.0) {
+            double w = 1.0 - u * u;
+            den += w * std::exp(xbj(i)) * r(i);
+            num += w * Y(i);
+        }
+    }
+
+    double r_star = compute_r_scalar(s, t, theta, sce);
+    const double eps = 1e-12;
+    if (den <= eps) return NA_REAL;
 
     return (num / den) * r_star;
 }

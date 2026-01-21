@@ -21,12 +21,24 @@ mu_r <- function(j, t, s, h, btj, X, Y, delPi, S, Z, sce) {
     .Call(`_TrajecEstm_mu_r`, j, t, s, h, btj, X, Y, delPi, S, Z, sce)
 }
 
+mu_r_core <- function(t, s, h, btj, X, Y, S, Z, sce) {
+    .Call(`_TrajecEstm_mu_r_core`, t, s, h, btj, X, Y, S, Z, sce)
+}
+
 mu_NP <- function(j, t, s, h1, h2, bj, X, Y, delPi, S, Z) {
     .Call(`_TrajecEstm_mu_NP`, j, t, s, h1, h2, bj, X, Y, delPi, S, Z)
 }
 
-estimate_beta_survivor_lbfgs <- function(X, Y, A, Z, Kmat, tau0, tau, init, tol = 1e-8, max_iter = 1000L) {
-    .Call(`_TrajecEstm_estimate_beta_survivor_lbfgs`, X, Y, A, Z, Kmat, tau0, tau, init, tol, max_iter)
+mu_surv <- function(s, h, beta, X, Y, S, Z, tau) {
+    .Call(`_TrajecEstm_mu_surv`, s, h, beta, X, Y, S, Z, tau)
+}
+
+mu_surv_core <- function(s, h, beta, X, Y, S) {
+    .Call(`_TrajecEstm_mu_surv_core`, s, h, beta, X, Y, S)
+}
+
+estimate_beta_survivor_lbfgs <- function(X, Y, A, Kmat, tau0, tau, init, tol = 1e-8, max_iter = 1000L) {
+    .Call(`_TrajecEstm_estimate_beta_survivor_lbfgs`, X, Y, A, Kmat, tau0, tau, init, tol, max_iter)
 }
 
 matK_tri4 <- function(Z, h) {

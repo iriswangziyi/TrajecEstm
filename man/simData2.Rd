@@ -5,10 +5,11 @@
 \title{Generate Simulated Data With Time-Dependent X}
 \usage{
 simData2(
-  T0param = c(lambda = exp(-4), beta_X1 = 0.5, beta_X2 = 0.5, nu = 2),
-  beta0 = c(beta11 = 1, beta12 = -1, beta21 = 1, beta22 = -1),
+  T0param = c(lambda = exp(-5)/2, beta_X1 = 0.5, beta_X2 = 0.5, nu = 2),
+  beta0 = c(beta11 = 1, beta12 = -1, beta21 = 1, beta22 = -1, beta31 = 1, beta32 = -1),
   N = 500,
-  scenario = 2
+  scenario = 2,
+  tau = 20
 )
 }
 \arguments{

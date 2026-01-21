@@ -16,6 +16,7 @@ estimate_survivor_grad <- function(df_s, X_s,
     #   Z   : event/censoring time
     # X_s  : p × n design matrix aligned with df_s rows/cols
 
+
     # 1. Filter for long-term survivors: Z >= tau
     keep <- df_s$Z >= tau
     df_s2 <- df_s[keep, , drop = FALSE]
@@ -25,13 +26,13 @@ estimate_survivor_grad <- function(df_s, X_s,
     if (is.null(h1)) h1 <- 2 * n2^(-1/3)
 
     # 2. Kernel on A *after* filtering (A is in the math)
-    Kmat <- matK_dispatch(df_s2$A, h1, use_sparse)
+    Kmat <- matK_dispatch(df_s2$S, h1, use_sparse)
 
     # 3. Call C++ optimizer (no Z passed anymore)
     par_cpp <- estimate_beta_survivor_lbfgs(
         X    = X_s2,
         Y    = df_s2$Y,
-        A    = df_s2$A,
+        A    = df_s2$S,
         Kmat = Kmat,
         tau0 = tau0,
         tau  = tau,
