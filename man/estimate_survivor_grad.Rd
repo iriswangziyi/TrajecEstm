@@ -3,15 +3,16 @@
 \name{estimate_survivor_grad}
 \alias{estimate_survivor_grad}
 \title{estimate_survivor_grad
-L-BFGS for survivor model (Section 4)}
+L-BFGS for survivor model}
 \usage{
 estimate_survivor_grad(
   df_s,
   X_s,
   h1 = NULL,
   use_sparse = FALSE,
-  tau0 = 0,
-  tau = Inf,
+  tau = NULL,
+  tau0 = NULL,
+  tau1 = NULL,
   tol = 1e-08,
   max_iter = 1000,
   init
@@ -19,5 +20,5 @@ estimate_survivor_grad(
 }
 \description{
 estimate_survivor_grad
-L-BFGS for survivor model (Section 4)
+L-BFGS for survivor model
 }

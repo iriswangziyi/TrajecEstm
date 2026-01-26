@@ -37,8 +37,8 @@ mu_surv_core <- function(s, h, beta, X, Y, S) {
     .Call(`_TrajecEstm_mu_surv_core`, s, h, beta, X, Y, S)
 }
 
-estimate_beta_survivor_lbfgs <- function(X, Y, A, Kmat, tau0, tau, init, tol = 1e-8, max_iter = 1000L) {
-    .Call(`_TrajecEstm_estimate_beta_survivor_lbfgs`, X, Y, A, Kmat, tau0, tau, init, tol, max_iter)
+estimate_beta_survivor_lbfgs <- function(X, Y, S, Kmat, tau0, tau1, init, tol = 1e-8, max_iter = 1000L) {
+    .Call(`_TrajecEstm_estimate_beta_survivor_lbfgs`, X, Y, S, Kmat, tau0, tau1, init, tol, max_iter)
 }
 
 matK_tri4 <- function(Z, h) {

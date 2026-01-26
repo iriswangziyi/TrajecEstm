@@ -194,21 +194,21 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_beta_survivor_lbfgs
-arma::vec estimate_beta_survivor_lbfgs(const arma::mat& X, const arma::vec& Y, const arma::vec& A, const arma::mat& Kmat, double tau0, double tau, arma::vec init, double tol, std::size_t max_iter);
-RcppExport SEXP _TrajecEstm_estimate_beta_survivor_lbfgs(SEXP XSEXP, SEXP YSEXP, SEXP ASEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tauSEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+arma::vec estimate_beta_survivor_lbfgs(const arma::mat& X, const arma::vec& Y, const arma::vec& S, const arma::mat& Kmat, double tau0, double tau1, arma::vec init, double tol, std::size_t max_iter);
+RcppExport SEXP _TrajecEstm_estimate_beta_survivor_lbfgs(SEXP XSEXP, SEXP YSEXP, SEXP SSEXP, SEXP KmatSEXP, SEXP tau0SEXP, SEXP tau1SEXP, SEXP initSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type S(SSEXP);
     Rcpp::traits::input_parameter< const arma::mat& >::type Kmat(KmatSEXP);
     Rcpp::traits::input_parameter< double >::type tau0(tau0SEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< double >::type tau1(tau1SEXP);
     Rcpp::traits::input_parameter< arma::vec >::type init(initSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< std::size_t >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_beta_survivor_lbfgs(X, Y, A, Kmat, tau0, tau, init, tol, max_iter));
+    rcpp_result_gen = Rcpp::wrap(estimate_beta_survivor_lbfgs(X, Y, S, Kmat, tau0, tau1, init, tol, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }

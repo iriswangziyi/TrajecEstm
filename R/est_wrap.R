@@ -12,6 +12,8 @@ estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
                                     tol   = 1e-8,
                                     max_iter = 1000,
                                     init) {
+
+
     keep <- df_l$delPi == j
     dfj_l <- df_l[keep, ]
     Xj_l <- X_l[, keep]
