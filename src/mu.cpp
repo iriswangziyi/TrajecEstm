@@ -38,7 +38,8 @@ double mu_r(arma::uword j,
             const arma::uvec& delPi,
             const arma::vec& S,
             const arma::vec& Z,
-            double sce)
+            double sce,
+            double tau_norm)
 {
     int n = S.n_elem;
     int p = X.n_rows;
@@ -49,7 +50,7 @@ double mu_r(arma::uword j,
     arma::vec xbj = X.t() * bj;
 
     // r_i = r(S_i, Z_i; theta) for each subject i under the given scenario
-    arma::vec r = compute_r_vec(S, Z, theta, sce);
+    arma::vec r = compute_r_vec(S, Z, theta, sce, tau_norm);
 
     double num = 0.0;
     double den = 0.0;
@@ -68,7 +69,7 @@ double mu_r(arma::uword j,
     }
 
     // r(s, t; theta) at the evaluation point (s, t)
-    double r_star = compute_r_scalar(s, t, theta, sce);
+    double r_star = compute_r_scalar(s, t, theta, sce, tau_norm);
 
     // small numerical guard
     const double eps = 1e-12;
@@ -86,7 +87,8 @@ double mu_r_core(double t,
                  const arma::vec& Y,
                  const arma::vec& S,
                  const arma::vec& Z,
-                 double sce)
+                 double sce,
+                 double tau_norm)
 {
     const int n = S.n_elem;
     const int p = X.n_rows;
@@ -95,7 +97,7 @@ double mu_r_core(double t,
     arma::vec theta = btj.subvec(p, btj.n_elem - 1);
 
     arma::vec xbj = X.t() * bj;
-    arma::vec r   = compute_r_vec(S, Z, theta, sce);
+    arma::vec r   = compute_r_vec(S, Z, theta, sce, tau_norm);
 
     double num = 0.0, den = 0.0;
     if (t < h) t = h;
@@ -109,7 +111,7 @@ double mu_r_core(double t,
         }
     }
 
-    double r_star = compute_r_scalar(s, t, theta, sce);
+    double r_star = compute_r_scalar(s, t, theta, sce, tau_norm);
     const double eps = 1e-12;
     if (den <= eps) return NA_REAL;
 

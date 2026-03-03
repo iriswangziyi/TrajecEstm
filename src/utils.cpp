@@ -153,10 +153,11 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
-                        double sce)
+                        double sce,
+                        double tau)
 {
     double r;
-    double tau = 20.0;
+    //double tau = 20.0;
 
     if (sce == 2.1) {
         // Sigmoid shape centered near s* = 0.5 · t*
@@ -174,10 +175,13 @@ double compute_r_scalar(double s,
         r = std::exp(-theta(0) * diff * diff + theta(1) * (s/tau));
 
     } else if (sce == 1.1) {
+        //double sc = (s/tau) - 0.5;
+        //double tc = (t/tau) - 0.5;
         // General poly with interaction:
         //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        r = std::exp(theta(0) * (s/tau) * (s/tau) + theta(1) * (s/tau)
-                         + theta(2) * (s/tau) * (t/tau));
+        r = std::exp(theta(0) * (s/tau)
+                         + theta(1) * (s/tau) * (t/tau));
+                        //+0);
 
     // ===== New hierarchical 3.x (scaled only; never t* alone) =====
     } else if (sce == 3.1) {
@@ -248,10 +252,11 @@ double compute_r_scalar(double s,
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
-                        double sce)
+                        double sce,
+                        double tau)
 {
     arma::vec r(s.n_elem);
-    double tau = 20.0;
+    //double tau = 20.0;
 
     if (sce == 2.1) {
         // Sigmoid shape centered near s* = 0.5 · t*
@@ -269,10 +274,15 @@ arma::vec compute_r_vec(arma::vec s,
         r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
 
     } else if (sce == 1.1) {
+        //center s and t by tau/2 after normalization
+        //arma::vec sc = (s/tau) - 0.5;
+        //arma::vec tc = (t/tau) - 0.5;
         // General poly with interaction:
         //log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
-                         + theta(2) * (s/tau) % (t/tau));
+        //log r = theta1· s* + theta2 · s* · t*
+        r = exp(theta(0) * (s/tau)
+                      + theta(1) * (s/tau) % (t/tau));// TODO 2.2
+                        //+ 0);
 
         // ===== New hierarchical 3.x (scaled only; never t* alone) =====
     } else if (sce == 3.1) {
@@ -358,11 +368,14 @@ arma::vec compute_r_vec(arma::vec s,
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
-                        double sce)
+                        double sce,
+                        double tau)
 {
-    double tau = 20.0;
+
     arma::vec r(s.n_elem);
     arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
+
+    //Rcpp::Rcout << theta.n_elem;
 
     if (sce == 2.1) {
         // Sigmoid shape centered near s* = 0.5 · t*
@@ -387,11 +400,14 @@ Rcpp::List compute_r_dr(arma::vec s,
     } else if (sce == 1.1) {
         // General poly with interaction:
         //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        r = exp(theta(0) * (s/tau) % (s/tau) + theta(1) * (s/tau)
-                    + theta(2) * (s/tau) % (t/tau));
-        dr.col(0) = r % (s/tau) % (s/tau);
-        dr.col(1) = r % (s/tau);
-        dr.col(2) = r % (s/tau) % (t/tau);
+        //arma::vec sc = (s/tau) - 0.5;
+        //arma::vec tc = (t/tau) - 0.5;
+        r = exp(theta(0) * (s/tau)
+                    + theta(1) * ((s/tau) % (t/tau))); //TODO 2.2
+                    //+ 0);
+        dr.col(0) = r % (s/tau);
+        dr.col(1) = r % ((s/tau) % (t/tau));
+        //dr.col(2) = r % (sc % tc); //TODO 2.2
 
     // ===== New hierarchical 3.x (scaled only; never t* alone) =====
 

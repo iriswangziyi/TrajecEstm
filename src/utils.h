@@ -13,21 +13,24 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1, Rcpp::LogicalVector use_s
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
-                        double sce);
+                        double sce,
+                        double tau);
 
 
 // Compute only r as a vector
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
-                        double sce);
+                        double sce,
+                        double tau);
 
 
 // Compute only r for a single (a, z) pair
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
-                        double sce);
+                        double sce,
+                        double tau);
 
 
 // Gradient function

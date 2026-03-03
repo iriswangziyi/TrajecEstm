@@ -7,9 +7,9 @@
 
 estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
                                     use_sparse = FALSE,
-                                    tau0 = 0, tau1 = Inf,
+                                    tau0 = 0, tau1 = Inf, tau_norm,
                                     sce = 2.1,
-                                    tol   = 1e-8,
+                                    tol = 1e-8,
                                     max_iter = 1000,
                                     init) {
 
@@ -35,6 +35,7 @@ estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
         Kmat  = Kmat,
         tau0  = tau0,
         tau1  = tau1,
+        tau_norm = tau_norm,
         sce = sce,
         init  = init,         # in-place update
         tol   = 1e-8,         # ≈ MinGradientNorm()

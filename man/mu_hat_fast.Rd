@@ -4,7 +4,7 @@
 \alias{mu_hat_fast}
 \title{\code{mu_hat_fast}: same as \code{mu_hat} but filters deltaPi==j in R for speed}
 \usage{
-mu_hat_fast(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario)
+mu_hat_fast(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm)
 }
 \arguments{
 \item{j}{integer {1,2}}

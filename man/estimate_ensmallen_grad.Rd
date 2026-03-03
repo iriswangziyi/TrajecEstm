@@ -12,6 +12,7 @@ estimate_ensmallen_grad(
   use_sparse = FALSE,
   tau0 = 0,
   tau1 = Inf,
+  tau_norm,
   sce = 2.1,
   tol = 1e-08,
   max_iter = 1000,

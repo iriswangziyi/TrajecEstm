@@ -4,12 +4,12 @@
 \name{TrajecEstm-package}
 \alias{TrajecEstm}
 \alias{TrajecEstm-package}
-\title{TrajecEstm: What the Package Does (One Line, Title Case)}
+\title{TrajecEstm: Trajectory Estimation}
 \description{
-What the package does (one paragraph).
+Tools for trajectory estimation and survival-related estimation using kernel-based methods and gradient-based optimization.
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com}
+\strong{Maintainer}: Ziyi Wang \email{ziyi.w@columbia.edu}
 
 }
 \keyword{internal}

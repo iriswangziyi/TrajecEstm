@@ -21,7 +21,8 @@ double mu_r(arma::uword j,
             const arma::uvec& delPi,
             const arma::vec& S,
             const arma::vec& Z,
-            double sce);
+            double sce,
+            double tau_norm);
 
 // Core version: assumes inputs already filtered to the desired group (e.g., delPi==j)
 double mu_r_core(double t,
@@ -32,6 +33,7 @@ double mu_r_core(double t,
                  const arma::vec& Y,
                  const arma::vec& S,
                  const arma::vec& Z,
-                 double sce);
+                 double sce,
+                 double tau_norm);
 
 #endif
