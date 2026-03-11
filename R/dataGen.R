@@ -206,37 +206,45 @@ simData2 <- function(T0param = c(lambda = exp(-5)/2,
     ## true theta: cause1:1, cause2:2
 
     # Compute marker trajectory mu_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
+    # mu0: survivor baseline (chosen independently by visual inspection)
+    mu0_sce1 <- 4; mu0_sce2 <- 0.5
+
+    # g(t) scaling constant for Sce 2: (1+e)
+    g_sig <- 1 + exp(1)  # ~ 3.72
+
     if (scenario == 1) {
-        # Scenario 1, j=1: s+s×t (sce 1.1), no centering, j=1 UP
-        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(1, -0.5),
-                             sce = 1.1, tau = tau)
-        gs1 <- 1
+        # Scenario 1 (both DOWN):
+        # j=1: s+s² (sce 2.2), centered c=0.5, DOWN
+        rs1 <- compute_r_vec(s = S, t = T_l, theta = c(-1, -1),
+                             sce = 2.2, tau = tau, center = 0.5)
+        gs1 <- 0.5 + 0.1 * T_l
         mus1 <- rs1 * gs1
 
-        # Scenario 1, j=2: s+(t-s) (sce 1.2), no centering, j=2 DOWN
+        # j=2: s+(t-s) (sce 1.2), theta=(-1,1), no centering, DOWN
         rs2 <- compute_r_vec(s = S, t = T_l, theta = c(-1, 1),
                              sce = 1.2, tau = tau)
-        gs2 <- (1/2) * log(T_l + 2)
+        gs2 <- 1
         mus2 <- rs2 * gs2
 
-        #for long term surv
-        mus0 <- rep(1, length(S))
+        # long-term surv
+        mus0 <- rep(mu0_sce1, length(S))
 
     }else{
-        # Scenario 2, j=1: Sigmoid (sce 2.1), j=1 UP
+        # Scenario 2 (both UP):
+        # j=1: Sigmoid (sce 2.1), UP
         rs1 <- compute_r_vec(s = S, t = T_l, theta = 2,
                              sce = 2.1, tau = tau)
-        gs1 <- 5
+        gs1 <- g_sig
         mus1 <- rs1 * gs1
 
-        # Scenario 2, j=2: s+s² (sce 2.2), centered c=0.5, j=2 DOWN
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(-1, -1),
-                             sce = 2.2, tau = tau, center = 0.5)
-        gs2 <- 1.5 + 0.05 * T_l
+        # j=2: s+s×t (sce 1.1), no centering, UP
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -0.5),
+                             sce = 1.1, tau = tau)
+        gs2 <- g_sig / (1 + exp(T_l / tau))
         mus2 <- rs2 * gs2
 
-        #for long term surv, a function of S
-        mus0 <- rep(1, length(S))
+        # long-term surv
+        mus0 <- rep(mu0_sce2, length(S))
     }
 
     ## Extracting true values for beta parameters
