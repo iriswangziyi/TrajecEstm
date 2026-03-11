@@ -4,7 +4,7 @@
 \alias{compute_r_dr}
 \title{Compute r(s, t; theta) and its derivatives with respect to theta}
 \usage{
-compute_r_dr(s, t, theta, sce, tau)
+compute_r_dr(s, t, theta, sce, tau, center = 0)
 }
 \arguments{
 \item{s}{Numeric vector of s values.}
@@ -17,6 +17,8 @@ compute_r_dr(s, t, theta, sce, tau)
 
 \item{tau}{Numeric scaling constant used to normalize s and t inside
 \eqn{\eta_\theta(s,t)} (this is \code{tau_norm}, not the survival cutpoint).}
+
+\item{center}{Numeric centering constant (default 0). Use 0.5 for centered scenarios.}
 }
 \value{
 A list with:
@@ -33,8 +35,8 @@ the Jacobian matrix \code{dr}, where \verb{dr[i,k] = d r_i / d theta_k}.
 \examples{
 s <- seq(0, 10, length.out = 5)
 t <- seq(2, 6, length.out = 5)
-theta <- c(0.5, -1, 0.5)
-out <- compute_r_dr(s, t, theta, sce = 1.1, tau = 20)
+theta <- c(1, -0.5)
+out <- compute_r_dr(s, t, theta, sce = 1.1, tau = 18, center = 0.5)
 str(out)
 
 }

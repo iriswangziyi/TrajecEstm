@@ -4,7 +4,7 @@
 \alias{compute_r_vec}
 \title{Compute r(s, t; theta) under a scenario}
 \usage{
-compute_r_vec(s, t, theta, sce, tau)
+compute_r_vec(s, t, theta, sce, tau, center = 0)
 }
 \arguments{
 \item{s}{Numeric vector of s values.}
@@ -17,6 +17,9 @@ compute_r_vec(s, t, theta, sce, tau)
 
 \item{tau}{Numeric scaling constant used to normalize s and t inside
 \eqn{\eta_\theta(s,t)} (this is \code{tau_norm}, not the survival cutpoint).}
+
+\item{center}{Numeric centering constant for centered scenarios (2.2, 1.1).
+Default 0 (no centering). Use 0.5 for centered designs.}
 }
 \value{
 A numeric vector \code{r} of the same length as \code{s}.
@@ -33,7 +36,7 @@ where \eqn{\eta_\theta(s,t)} depends on \code{sce} (scenario code).
 \examples{
 s <- seq(0, 10, length.out = 5)
 t <- seq(2, 6, length.out = 5)
-theta <- c(0.5, -1, 0.5)
-compute_r_vec(s, t, theta, sce = 1.1, tau = 20)
+theta <- c(-1, -1)
+compute_r_vec(s, t, theta, sce = 2.2, tau = 18, center = 0.5)
 
 }

@@ -8,16 +8,18 @@
 #' @param S,Z      length-n visit time and event/censoring time vectors
 #' @param scenario numeric, like 1.1, 1.2, 2.1, 2.2
 #' @export
-mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm) {
+mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm,
+                   center = 0) {
     mu_r(j = j, t = t, s = s, h = h, btj = par,
          X = X, Y = Y, delPi = deltaPi, S = S, Z = Z,
-         sce = scenario, tau_norm = tau_norm)
+         sce = scenario, tau_norm = tau_norm, center = center)
 }
 
 #' \code{mu_hat_fast}: same as \code{mu_hat} but filters deltaPi==j in R for speed
 #' @inheritParams mu_hat
 #' @export
-mu_hat_fast <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm) {
+mu_hat_fast <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm,
+                        center = 0) {
     keep <- (deltaPi == j)
     mu_r_core(
         t = t, s = s, h = h,
@@ -27,6 +29,7 @@ mu_hat_fast <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm
         S = S[keep],
         Z = Z[keep],
         sce = scenario,
-        tau_norm = tau_norm
+        tau_norm = tau_norm,
+        center = center
     )
 }

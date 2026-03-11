@@ -11,7 +11,8 @@ estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
                                     sce = 2.1,
                                     tol = 1e-8,
                                     max_iter = 1000,
-                                    init) {
+                                    init,
+                                    center = 0) {
 
 
     keep <- df_l$delPi == j
@@ -37,8 +38,9 @@ estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
         tau1  = tau1,
         tau_norm = tau_norm,
         sce = sce,
-        init  = init,         # in-place update
-        tol   = 1e-8,         # ≈ MinGradientNorm()
-        max_iter = 1000       # raise if needed
+        init  = init,
+        tol   = 1e-8,
+        max_iter = 1000,
+        center = center
     )
 }

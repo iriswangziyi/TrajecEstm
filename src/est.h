@@ -31,7 +31,8 @@ arma::vec estimate_beta_theta_lbfgs_V1(arma::uword          j,
                                        double              sce,
                                        arma::vec           init,
                                        double              tol,
-                                       std::size_t         max_iter);
+                                       std::size_t         max_iter,
+                                       double              center = 0.0);
 
 arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
                                        const arma::mat&    X,
@@ -45,6 +46,7 @@ arma::vec estimate_beta_theta_lbfgs_V2(arma::uword          j,
                                        double              sce,
                                        arma::vec           init,
                                        double              tol,
-                                       std::size_t         max_iter);
+                                       std::size_t         max_iter,
+                                       double              center = 0.0);
 
 #endif

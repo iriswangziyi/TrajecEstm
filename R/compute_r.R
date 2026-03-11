@@ -13,26 +13,29 @@
 #' @param sce Numeric scenario code (e.g., 1.1).
 #' @param tau Numeric scaling constant used to normalize s and t inside
 #'   \eqn{\eta_\theta(s,t)} (this is `tau_norm`, not the survival cutpoint).
+#' @param center Numeric centering constant for centered scenarios (2.2, 1.1).
+#'   Default 0 (no centering). Use 0.5 for centered designs.
 #'
 #' @return A numeric vector `r` of the same length as `s`.
 #'
 #' @examples
 #' s <- seq(0, 10, length.out = 5)
 #' t <- seq(2, 6, length.out = 5)
-#' theta <- c(0.5, -1, 0.5)
-#' compute_r_vec(s, t, theta, sce = 1.1, tau = 20)
+#' theta <- c(-1, -1)
+#' compute_r_vec(s, t, theta, sce = 2.2, tau = 18, center = 0.5)
 #'
 #' @export
-compute_r_vec <- function(s, t, theta, sce, tau) {
+compute_r_vec <- function(s, t, theta, sce, tau, center = 0) {
     stopifnot(is.numeric(s), is.numeric(t), is.numeric(theta),
               is.numeric(sce), length(sce) == 1L,
-              is.numeric(tau), length(tau) == 1L)
+              is.numeric(tau), length(tau) == 1L,
+              is.numeric(center), length(center) == 1L)
 
     if (length(s) != length(t)) {
         stop("`s` and `t` must have the same length.")
     }
 
-    .Call(`_TrajecEstm_compute_r_vec`, s, t, theta, sce, tau)
+    .Call(`_TrajecEstm_compute_r_vec`, s, t, theta, sce, tau, center)
 }
 
 
@@ -50,22 +53,25 @@ compute_r_vec <- function(s, t, theta, sce, tau) {
 #'   \item `dr`: numeric matrix of dimension `n x length(theta)`
 #' }
 #'
+#' @param center Numeric centering constant (default 0). Use 0.5 for centered scenarios.
+#'
 #' @examples
 #' s <- seq(0, 10, length.out = 5)
 #' t <- seq(2, 6, length.out = 5)
-#' theta <- c(0.5, -1, 0.5)
-#' out <- compute_r_dr(s, t, theta, sce = 1.1, tau = 20)
+#' theta <- c(1, -0.5)
+#' out <- compute_r_dr(s, t, theta, sce = 1.1, tau = 18, center = 0.5)
 #' str(out)
 #'
 #' @export
-compute_r_dr <- function(s, t, theta, sce, tau) {
+compute_r_dr <- function(s, t, theta, sce, tau, center = 0) {
     stopifnot(is.numeric(s), is.numeric(t), is.numeric(theta),
               is.numeric(sce), length(sce) == 1L,
-              is.numeric(tau), length(tau) == 1L)
+              is.numeric(tau), length(tau) == 1L,
+              is.numeric(center), length(center) == 1L)
 
     if (length(s) != length(t)) {
         stop("`s` and `t` must have the same length.")
     }
 
-    .Call(`_TrajecEstm_compute_r_dr`, s, t, theta, sce, tau)
+    .Call(`_TrajecEstm_compute_r_dr`, s, t, theta, sce, tau, center)
 }

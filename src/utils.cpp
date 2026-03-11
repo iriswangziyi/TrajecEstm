@@ -132,91 +132,53 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
 
 
 /*
- compute_r_scalar: scalar r(s, t; θ, sce) at a single (s, t).
+ compute_r_scalar: scalar r(s, t; θ, sce, center) at a single (s, t).
 
- Let s* = s/tau and t* = t/tau with tau = 20.0 (fixed scaling).
+ Let s* = s/tau and t* = t/tau.  For centered cases pass center = 0.5.
 
- Scenarios:
- 2.1 (Sigmoid):
- r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
+ Scenarios (2-theta redesign, 2026-03):
+ 2.1 (Sigmoid, 1 param, no centering):
+     r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
 
- 2.2 (Polynomial in s only):
- log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
+ 2.2 (s + s², 2 params, centered):
+     log r = theta1 · (s* - c)^2 + theta2 · (s* - c)
 
- 1.1 (Bell / bump with shift):
- log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
+ 1.1 (s + s×t, 2 params, no centering):
+     log r = theta1 · s* + theta2 · s* · t*
 
- 1.2 (General polynomial with interaction):
- log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
+ 1.2 (s + (t-s), 2 params, no centering):
+     log r = theta1 · s* + theta2 · (t* - s*)
  */
 // [[Rcpp::export]]
 double compute_r_scalar(double s,
                         double t,
                         arma::vec theta,
                         double sce,
-                        double tau)
+                        double tau,
+                        double center)
 {
     double r;
-    //double tau = 20.0;
 
     if (sce == 2.1) {
-        // Sigmoid shape centered near s* = 0.5 · t*
+        // Sigmoid: r = 1/(1+exp(-θ·(s*-0.5t*)))
         r = 1.0 / (1.0 + std::exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
 
     } else if (sce == 2.2) {
-        // Polynomial in s only (no t):
-        //Poly2:log r = theta1 · s* + theta2 · (s*)^2
-        r = std::exp(theta(0) * (s/tau) + theta(1) * (s/tau) *(s/tau));
-
-    } else if (sce == 1.2) {
-        // Bell:
-        //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
-        double diff = (s/tau) - 0.5 * (t/tau);
-        r = std::exp(-theta(0) * diff * diff + theta(1) * (s/tau));
+        // s+s²: log r = θ₁·(s*-c)² + θ₂·(s*-c)
+        double sc = (s/tau) - center;
+        r = std::exp(theta(0) * sc * sc + theta(1) * sc);
 
     } else if (sce == 1.1) {
-        //double sc = (s/tau) - 0.5;
-        //double tc = (t/tau) - 0.5;
-        // General poly with interaction:
-        //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        r = std::exp(theta(0) * (s/tau)
-                         + theta(1) * (s/tau) * (t/tau));
-                        //+0);
+        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
+        double ss = s/tau;
+        double ts = t/tau;
+        r = std::exp(theta(0) * ss + theta(1) * ss * ts);
 
-    // ===== New hierarchical 3.x (scaled only; never t* alone) =====
-    } else if (sce == 3.1) {
-        // 3.1 poly(s), log r = th1 * s*
-        r = std::exp(theta(0) * (s/tau));
-
-    } else if (sce == 3.2) {
-        // 3.2 poly(s, s²)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * (s/tau) * (s/tau));
-
-    } else if (sce == 3.3) {
-        // 3.3 poly(s, Δ)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.4) {
-        // 3.4 poly(s, Δ, Δ²)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * ((s/tau) - (t/tau)) * ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.5) {
-        // 3.5 poly(s, Δ, s*Δ)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * (s/tau) * ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.6) {
-        // 3.6 poly(s, Δ, s*Δ, s²)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * (s/tau) * ((s/tau) - (t/tau))
-                         + theta(3) * (s/tau) * (s/tau));
-
-    } else if (sce == 3.7) {
-        // 3.6 poly(s, Δ, Δ², s²)
-        r = std::exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * ((s/tau) - (t/tau)) * ((s/tau) - (t/tau))
-                         + theta(3) * (s/tau) * (s/tau));
+    } else if (sce == 1.2) {
+        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
+        double ss = s/tau;
+        double ts = t/tau;
+        r = std::exp(theta(0) * ss + theta(1) * (ts - ss));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_scalar()");
@@ -228,96 +190,40 @@ double compute_r_scalar(double s,
 
 
 /*
- compute_r_vec: elementwise r(s_i, t_i; theta, sce) for vectors s and t (same length).
+ compute_r_vec: elementwise r(s_i, t_i; theta, sce, center) for vectors s and t.
 
- Let s* = s/tau and t* = t/tau with tau = 20.0 (fixed scaling).
-
- Scenarios:
- 2.1 (Sigmoid):
- r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
-
- 2.2 (Polynomial in s only):
- log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
-
- 1.1 (Bell / bump with shift):
- log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
-
- 1.2 (General polynomial with interaction):
- log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-
- Returns:
- arma::vec of length s.n_elem.
+ See compute_r_scalar for scenario definitions.
  */
 // [[Rcpp::export]]
 arma::vec compute_r_vec(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
                         double sce,
-                        double tau)
+                        double tau,
+                        double center)
 {
     arma::vec r(s.n_elem);
-    //double tau = 20.0;
 
     if (sce == 2.1) {
-        // Sigmoid shape centered near s* = 0.5 · t*
+        // Sigmoid: r = 1/(1+exp(-θ·(s*-0.5t*)))
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
 
     } else if (sce == 2.2) {
-        // Polynomial in s only (no t):
-        //log r = theta1 · s* + theta2 · (s*)^2
-        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
-
-    } else if (sce == 1.2) {
-        // Bell:
-        //log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
-        arma::vec diff =(s/tau) - 0.5 * (t/tau);
-        r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
+        // s+s²: log r = θ₁·(s*-c)² + θ₂·(s*-c)
+        arma::vec sc = (s/tau) - center;
+        r = exp(theta(0) * sc % sc + theta(1) * sc);
 
     } else if (sce == 1.1) {
-        //center s and t by tau/2 after normalization
-        //arma::vec sc = (s/tau) - 0.5;
-        //arma::vec tc = (t/tau) - 0.5;
-        // General poly with interaction:
-        //log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        //log r = theta1· s* + theta2 · s* · t*
-        r = exp(theta(0) * (s/tau)
-                      + theta(1) * (s/tau) % (t/tau));// TODO 2.2
-                        //+ 0);
+        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
+        arma::vec ss = s/tau;
+        arma::vec ts = t/tau;
+        r = exp(theta(0) * ss + theta(1) * ss % ts);
 
-        // ===== New hierarchical 3.x (scaled only; never t* alone) =====
-    } else if (sce == 3.1) {
-        // 3.1 poly(s), log r = th1 * s*
-        r = exp(theta(0) * (s/tau));
-
-    } else if (sce == 3.2) {
-        // 3.2 poly(s, s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
-
-    } else if (sce == 3.3) {
-        // 3.3 poly(s, Δ)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.4) {
-        // 3.4 poly(s, Δ, Δ²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * ((s/tau) - (t/tau)) % ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.5) {
-        // 3.5 poly(s, Δ, s*Δ)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * (s/tau) % ((s/tau) - (t/tau)));
-
-    } else if (sce == 3.6) {
-        // 3.6 poly(s, Δ, s*Δ, s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                         + theta(2) * (s/tau) % ((s/tau) - (t/tau))
-                         + theta(3) * (s/tau) % (s/tau));
-
-    } else if (sce == 3.7) {
-        // 3.7 poly(s, Δ, Δ², s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                    + theta(2) * ((s/tau) - (t/tau)) % ((s/tau) - (t/tau))
-                    + theta(3) * (s/tau) % (s/tau));
+    } else if (sce == 1.2) {
+        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
+        arma::vec ss = s/tau;
+        arma::vec ts = t/tau;
+        r = exp(theta(0) * ss + theta(1) * (ts - ss));
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_vec()");
@@ -328,141 +234,57 @@ arma::vec compute_r_vec(arma::vec s,
 
 
 /*
- compute_r_dr: vectorized r(s_i, t_i; theta, sce) and its gradient wrt theta.
+ compute_r_dr: vectorized r and gradient wrt theta.
 
- Inputs:
- s, t   : vectors of the same length n (paired evaluations)
- theta  : parameter vector (length depends on scenario)
- sce    : scenario code in {1.1, 1.2, 2.1, 2.2}
+ See compute_r_scalar for scenario definitions.
 
- Scaling:
- Let s* = s/tau and t* = t/tau with tau = 20.0.
+ Output:  List with r (vec n) and dr (mat n × p).
 
- Output:
- List with
- r  : arma::vec (n)          — r(s_i, t_i; theta, sce)
- dr : arma::mat (n × p)      — gradient wrt theta; column k is dr/dtheta_k
-
- Scenarios:
- 2.1 (Sigmoid):
- r = 1 / (1 + exp( -theta1 · (s* − 0.5 · t*) ))
- dr/dtheta1 = r (1 − r) · u
-
- 2.2 (Polynomial in s only):
- log r = theta1 · s* + theta2 · (s*)^2     // no t dependence
- dr/dtheta1 = r · s*
- dr/dtheta2 = r · (s*)^2
-
- 1.2 (Bell / bump with shift):
- log r = −theta1 · (s* − 0.5 · t*)^2 + θ2 · s*
- dr/dtheta1 = r · (− diff^2)
- dr/dtheta2 = r · s*
-
- 1.1 (General polynomial with s–t interaction):
- log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
- dr/dtheta1 = r · (s*)^2
- dr/dtheta2 = r · s*
- dr/dtheta3 = r · s* · t*
+ Derivatives:
+ 2.1: dr/dθ₁ = r(1-r)·(s*-0.5t*)
+ 2.2: dr/dθ₁ = r·(s*-c)²,  dr/dθ₂ = r·(s*-c)
+ 1.1: dr/dθ₁ = r·s*,        dr/dθ₂ = r·s*·t*
+ 1.2: dr/dθ₁ = r·s*,        dr/dθ₂ = r·(t*-s*)
  */
 // [[Rcpp::export]]
 Rcpp::List compute_r_dr(arma::vec s,
                         arma::vec t,
                         arma::vec theta,
                         double sce,
-                        double tau)
+                        double tau,
+                        double center)
 {
 
     arma::vec r(s.n_elem);
     arma::mat dr(s.n_elem, theta.n_elem, arma::fill::zeros);
 
-    //Rcpp::Rcout << theta.n_elem;
-
     if (sce == 2.1) {
-        // Sigmoid shape centered near s* = 0.5 · t*
+        // Sigmoid: r = 1/(1+exp(-θ·(s*-0.5t*)))
         r = 1.0 / (1.0 + exp(-theta(0) * ((s/tau) - 0.5 * (t/tau))));
         dr.col(0) = r % (1 - r) % ((s/tau) - 0.5 * (t/tau));
 
     } else if (sce == 2.2) {
-        // Polynomial in s only (no t):
-        //Poly2:log r = theta1 · s* + theta2 · (s*)^2
-        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % (s/tau) % (s/tau);
-
-    } else if (sce == 1.2) {
-        // Bell:
-        //Poly3:log r = −theta1 · (s* − 0.5 · t*)^2 + theta2 · s*
-        arma::vec diff =(s/tau) - 0.5 * (t/tau);
-        r = exp(-theta(0) * diff % diff + theta(1) * (s/tau));
-        dr.col(0) = -r % diff % diff;
-        dr.col(1) = r % (s/tau);
+        // s+s²: log r = θ₁·(s*-c)² + θ₂·(s*-c)
+        arma::vec sc = (s/tau) - center;
+        r = exp(theta(0) * sc % sc + theta(1) * sc);
+        dr.col(0) = r % sc % sc;
+        dr.col(1) = r % sc;
 
     } else if (sce == 1.1) {
-        // General poly with interaction:
-        //Poly4:log r = theta1 · (s*)^2 + theta2 · s* + theta3 · s* · t*
-        //arma::vec sc = (s/tau) - 0.5;
-        //arma::vec tc = (t/tau) - 0.5;
-        r = exp(theta(0) * (s/tau)
-                    + theta(1) * ((s/tau) % (t/tau))); //TODO 2.2
-                    //+ 0);
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % ((s/tau) % (t/tau));
-        //dr.col(2) = r % (sc % tc); //TODO 2.2
+        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
+        arma::vec ss = s/tau;
+        arma::vec ts = t/tau;
+        r = exp(theta(0) * ss + theta(1) * ss % ts);
+        dr.col(0) = r % ss;
+        dr.col(1) = r % ss % ts;
 
-    // ===== New hierarchical 3.x (scaled only; never t* alone) =====
-
-    } else if (sce == 3.1) {
-        // 3.1 poly(s), log r = th1 * s*
-        r = exp(theta(0) * (s/tau));
-        dr.col(0) = r % (s/tau);
-
-    } else if (sce == 3.2) {
-        // 3.2 poly(s, s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * (s/tau) % (s/tau));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % (s/tau) % (s/tau);
-
-    } else if (sce == 3.3) {
-        // 3.3 poly(s, Δ)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau)));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % ((s/tau) - (t/tau));
-
-    } else if (sce == 3.4) {
-        // 3.4 poly(s, Δ, Δ²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                    + theta(2) * ((s/tau) - (t/tau)) % ((s/tau) - (t/tau)));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % ((s/tau) - (t/tau));
-        dr.col(2) = r % ((s/tau) - (t/tau)) % ((s/tau) - (t/tau));
-
-    } else if (sce == 3.5) {
-        // 3.5 poly(s, Δ, s*Δ)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                    + theta(2) * (s/tau) % ((s/tau) - (t/tau)));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % ((s/tau) - (t/tau));
-        dr.col(2) = r % (s/tau) % ((s/tau) - (t/tau));
-
-    } else if (sce == 3.6) {
-        // 3.6 poly(s, Δ, s*Δ, s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                    + theta(2) * (s/tau) % ((s/tau) - (t/tau))
-                    + theta(3) * (s/tau) % (s/tau));
-        dr.col(0) = r % (s/tau);
-        dr.col(1) = r % ((s/tau) - (t/tau));
-        dr.col(2) = r % (s/tau) % ((s/tau) - (t/tau));
-        dr.col(3) = r % (s/tau) % (s/tau);
-
-    } else if (sce == 3.7) {
-        // 3.7 poly(s, Δ, Δ², s²)
-        r = exp(theta(0) * (s/tau) + theta(1) * ((s/tau) - (t/tau))
-                    + theta(2) *  ((s/tau) - (t/tau)) % ((s/tau) - (t/tau))
-                    + theta(3) * (s/tau) % (s/tau));
-                    dr.col(0) = r % (s/tau);
-                    dr.col(1) = r % ((s/tau) - (t/tau));
-                    dr.col(2) = r % ((s/tau) - (t/tau)) % ((s/tau) - (t/tau));
-                    dr.col(3) = r % (s/tau) % (s/tau);
+    } else if (sce == 1.2) {
+        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
+        arma::vec ss = s/tau;
+        arma::vec ts = t/tau;
+        r = exp(theta(0) * ss + theta(1) * (ts - ss));
+        dr.col(0) = r % ss;
+        dr.col(1) = r % (ts - ss);
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_dr()");

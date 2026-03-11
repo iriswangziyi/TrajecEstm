@@ -16,7 +16,8 @@ estimate_ensmallen_grad(
   sce = 2.1,
   tol = 1e-08,
   max_iter = 1000,
-  init
+  init,
+  center = 0
 )
 }
 \value{
