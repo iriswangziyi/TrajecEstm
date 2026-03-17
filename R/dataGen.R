@@ -206,11 +206,12 @@ simData2 <- function(T0param = c(lambda = exp(-5)/2,
     ## true theta: cause1:1, cause2:2
 
     # Compute marker trajectory mu_j(s,t;θ) = g_j(t) * r_j(s,t;θ)
-    # mu0: survivor baseline (chosen independently by visual inspection)
-    mu0_sce1 <- 4; mu0_sce2 <- 0.5
+    # mu0(s): survivor baseline trajectory (non-constant, follows scenario direction)
+    # Sce1 (DOWN): 5·exp(-ln(10)/30·s), 5 → 0.5 at s=30
+    # Sce2 (UP):   0.5·exp(ln(6)/30·s), 0.5 → 3.0 at s=30
 
-    # g(t) scaling constant for Sce 2: (1+e)
-    g_sig <- 1 + exp(1)  # ~ 3.72
+    # g(t) scaling constant for Sce 2: 4
+    g_sig <- 4
 
     if (scenario == 1) {
         # Scenario 1 (both DOWN):
@@ -220,31 +221,32 @@ simData2 <- function(T0param = c(lambda = exp(-5)/2,
         gs1 <- 0.5 + 0.1 * T_l
         mus1 <- rs1 * gs1
 
-        # j=2: s+(t-s) (sce 1.2), theta=(-1,1), no centering, DOWN
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(-1, 1),
-                             sce = 1.2, tau = tau)
-        gs2 <- 1
+        # j=2: (t-s)+(t-s)^2 (sce 1.2), centered c=0.5, DOWN
+        # same curve as uncentered (0.5,0.5): centered truth = (0.5, 1.0)
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.5, 1.0),
+                             sce = 1.2, tau = tau, center = 0.5)
+        gs2 <- 0.5
         mus2 <- rs2 * gs2
 
-        # long-term surv
-        mus0 <- rep(mu0_sce1, length(S))
+        # long-term surv: mu0(s) = 5·exp(-ln(10)/30·s)
+        mus0 <- 5 * exp(-log(10)/30 * S)
 
     }else{
         # Scenario 2 (both UP):
         # j=1: Sigmoid (sce 2.1), UP
         rs1 <- compute_r_vec(s = S, t = T_l, theta = 2,
-                             sce = 2.1, tau = tau)
+                             sce = 2.1, tau = tau, center = 0)
         gs1 <- g_sig
         mus1 <- rs1 * gs1
 
-        # j=2: s+s×t (sce 1.1), no centering, UP
-        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(1, -0.5),
-                             sce = 1.1, tau = tau)
-        gs2 <- g_sig / (1 + exp(T_l / tau))
+        # j=2: s+s×t centered (sce 1.1), theta=(0.5,0.5), c=0.5, UP
+        rs2 <- compute_r_vec(s = S, t = T_l, theta = c(0.5, 0.5),
+                             sce = 1.1, tau = tau, center = 0.5)
+        gs2 <- 4 * exp(-0.05 * T_l)
         mus2 <- rs2 * gs2
 
-        # long-term surv
-        mus0 <- rep(mu0_sce2, length(S))
+        # long-term surv: mu0(s) = 0.5·exp(ln(6)/30·s)
+        mus0 <- 0.5 * exp(log(6)/30 * S)
     }
 
     ## Extracting true values for beta parameters

@@ -143,11 +143,11 @@ arma::mat matK_dispatch(const arma::vec& Z, double h1,
  2.2 (s + s², 2 params, centered):
      log r = theta1 · (s* - c)^2 + theta2 · (s* - c)
 
- 1.1 (s + s×t, 2 params, no centering):
-     log r = theta1 · s* + theta2 · s* · t*
+ 1.1 (s + s×t, 2 params, centered):
+     log r = theta1 · (s* - c) + theta2 · (s* - c) · (t* - c)
 
- 1.2 (s + (t-s), 2 params, no centering):
-     log r = theta1 · s* + theta2 · (t* - s*)
+ 1.2 ((t-s) + (t-s)^2, 2 params, no centering):
+     log r = theta1 · (t* - s*)^2 + theta2 · (t* - s*)
  */
 // [[Rcpp::export]]
 double compute_r_scalar(double s,
@@ -169,16 +169,15 @@ double compute_r_scalar(double s,
         r = std::exp(theta(0) * sc * sc + theta(1) * sc);
 
     } else if (sce == 1.1) {
-        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
-        double ss = s/tau;
-        double ts = t/tau;
-        r = std::exp(theta(0) * ss + theta(1) * ss * ts);
+        // s+s×t: log r = θ₁·(s*-c) + θ₂·(s*-c)·(t*-c)
+        double sc = (s/tau) - center;
+        double tc = (t/tau) - center;
+        r = std::exp(theta(0) * sc + theta(1) * sc * tc);
 
     } else if (sce == 1.2) {
-        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
-        double ss = s/tau;
-        double ts = t/tau;
-        r = std::exp(theta(0) * ss + theta(1) * (ts - ss));
+        // (t-s)+(t-s)²: log r = θ₁·(u-c)² + θ₂·(u-c), u=(t-s)/τ
+        double u = (t - s) / tau - center;
+        r = std::exp(theta(0) * u * u + theta(1) * u);
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_scalar()");
@@ -214,16 +213,15 @@ arma::vec compute_r_vec(arma::vec s,
         r = exp(theta(0) * sc % sc + theta(1) * sc);
 
     } else if (sce == 1.1) {
-        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
-        arma::vec ss = s/tau;
-        arma::vec ts = t/tau;
-        r = exp(theta(0) * ss + theta(1) * ss % ts);
+        // s+s×t: log r = θ₁·(s*-c) + θ₂·(s*-c)·(t*-c)
+        arma::vec sc = (s/tau) - center;
+        arma::vec tc = (t/tau) - center;
+        r = exp(theta(0) * sc + theta(1) * sc % tc);
 
     } else if (sce == 1.2) {
-        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
-        arma::vec ss = s/tau;
-        arma::vec ts = t/tau;
-        r = exp(theta(0) * ss + theta(1) * (ts - ss));
+        // (t-s)+(t-s)²: log r = θ₁·(u-c)² + θ₂·(u-c), u=(t-s)/τ
+        arma::vec u = (t - s) / tau - center;
+        r = exp(theta(0) * u % u + theta(1) * u);
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_vec()");
@@ -243,8 +241,8 @@ arma::vec compute_r_vec(arma::vec s,
  Derivatives:
  2.1: dr/dθ₁ = r(1-r)·(s*-0.5t*)
  2.2: dr/dθ₁ = r·(s*-c)²,  dr/dθ₂ = r·(s*-c)
- 1.1: dr/dθ₁ = r·s*,        dr/dθ₂ = r·s*·t*
- 1.2: dr/dθ₁ = r·s*,        dr/dθ₂ = r·(t*-s*)
+ 1.1: dr/dθ₁ = r·(s*-c),    dr/dθ₂ = r·(s*-c)·(t*-c)
+ 1.2: dr/dθ₁ = r·(u-c)²,    dr/dθ₂ = r·(u-c),  u=(t-s)/τ
  */
 // [[Rcpp::export]]
 Rcpp::List compute_r_dr(arma::vec s,
@@ -271,20 +269,19 @@ Rcpp::List compute_r_dr(arma::vec s,
         dr.col(1) = r % sc;
 
     } else if (sce == 1.1) {
-        // s+s×t: log r = θ₁·s* + θ₂·s*·t* (no centering)
-        arma::vec ss = s/tau;
-        arma::vec ts = t/tau;
-        r = exp(theta(0) * ss + theta(1) * ss % ts);
-        dr.col(0) = r % ss;
-        dr.col(1) = r % ss % ts;
+        // s+s×t: log r = θ₁·(s*-c) + θ₂·(s*-c)·(t*-c)
+        arma::vec sc = (s/tau) - center;
+        arma::vec tc = (t/tau) - center;
+        r = exp(theta(0) * sc + theta(1) * sc % tc);
+        dr.col(0) = r % sc;
+        dr.col(1) = r % sc % tc;
 
     } else if (sce == 1.2) {
-        // s+(t-s): log r = θ₁·s* + θ₂·(t*-s*)
-        arma::vec ss = s/tau;
-        arma::vec ts = t/tau;
-        r = exp(theta(0) * ss + theta(1) * (ts - ss));
-        dr.col(0) = r % ss;
-        dr.col(1) = r % (ts - ss);
+        // (t-s)+(t-s)²: log r = θ₁·(u-c)² + θ₂·(u-c), u=(t-s)/τ
+        arma::vec u = (t - s) / tau - center;
+        r = exp(theta(0) * u % u + theta(1) * u);
+        dr.col(0) = r % u % u;
+        dr.col(1) = r % u;
 
     } else {
         Rcpp::stop("Unsupported sce value in compute_r_dr()");
