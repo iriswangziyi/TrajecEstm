@@ -7,11 +7,15 @@
 #' @param deltaPi  length-n integer vector with values in {1,2}
 #' @param S,Z      length-n visit time and event/censoring time vectors
 #' @param scenario numeric, like 1.1, 1.2, 2.1, 2.2
+#' @details Visits before the reference age (S < 0) are excluded, as the indicator
+#'   I(0 <= A + V) in the paper's estimator g-hat_j.
 #' @export
 mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm,
                    center = 0) {
+    keep <- which(S >= 0)
     mu_r(j = j, t = t, s = s, h = h, btj = par,
-         X = X, Y = Y, delPi = deltaPi, S = S, Z = Z,
+         X = X[, keep, drop = FALSE], Y = Y[keep], delPi = deltaPi[keep],
+         S = S[keep], Z = Z[keep],
          sce = scenario, tau_norm = tau_norm, center = center)
 }
 
@@ -20,7 +24,7 @@ mu_hat <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm,
 #' @export
 mu_hat_fast <- function(j, t, s, h, par, X, Y, deltaPi, S, Z, scenario, tau_norm,
                         center = 0) {
-    keep <- (deltaPi == j)
+    keep <- which(deltaPi == j & S >= 0)
     mu_r_core(
         t = t, s = s, h = h,
         btj = par,

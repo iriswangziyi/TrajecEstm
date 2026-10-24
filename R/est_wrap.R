@@ -15,7 +15,9 @@ estimate_ensmallen_grad <- function(j, df_l, X_l, h1 = NULL,
                                     center = 0) {
 
 
-    keep <- df_l$delPi == j
+    # Rows of type-j failures. Visits before the reference age (S < 0) are excluded: this is the
+    # indicator I(0 <= A + V) in the paper's estimator (w_il, s-hat_jk, g-tilde_j).
+    keep <- which(df_l$delPi == j & df_l$S >= 0)
     dfj_l <- df_l[keep, ]
     Xj_l <- X_l[, keep]
     n_j <- ncol(Xj_l)
