@@ -1,6 +1,6 @@
 Package: TrajecEstm
 Title: Trajectory Estimation
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: 
     person("Ziyi", "Wang", , "ziyi.w@columbia.edu", role = c("aut", "cre"))
 Description: Tools for trajectory estimation and survival-related estimation using kernel-based methods and gradient-based optimization.
