@@ -56,8 +56,9 @@ struct SurvivorObjective {
             K_weight.rows(zero_idx).zeros();
         }
 
+        // W(i, k) = K_weight(i, k) / denom(i): each row is normalized by its own denominator
         arma::mat W = K_weight;
-        W.each_row() /= denom.t();
+        W.each_col() /= denom;
 
         arma::mat weighted_X = X * W.t();
 
